@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.env
+dist/
+build/
+*.egg-info/
+
+# Next.js (website/ folder only)
+website/node_modules/
+website/.next/
+website/out/
+website/.env.local
+
+# Misc
+*.log
+.DS_Store
+training_output/
+.gemini/
+.antigravity/

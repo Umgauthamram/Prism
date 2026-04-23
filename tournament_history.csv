@@ -1,0 +1,11 @@
+timestamp,model,provider,final_reward,steps
+2026-04-23 14:18:25,llama-3.3-70b-versatile,groq,0.525,5
+2026-04-23 14:18:26,gemini-2.0-flash,gemini,0.525,5
+2026-04-23 14:20:19,llama-3.3-70b-versatile,groq,0.525,5
+2026-04-23 14:20:19,gemini-2.0-flash,gemini,0.525,5
+2026-04-23 14:25:48,gemini-2.0-flash-lite,gemini,0.525,5
+2026-04-23 14:25:49,llama-3.3-70b-versatile,groq,0.525,5
+2026-04-23 14:25:50,gemini-2.0-flash,gemini,0.525,5
+2026-04-23 14:28:40,gemini-2.0-flash-lite,gemini,0.525,10
+2026-04-23 14:35:10,gemini-2.0-flash,gemini,0.525,5
+2026-04-23 14:35:11,llama-3.3-70b-versatile,groq,0.525,5
