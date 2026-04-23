@@ -23,6 +23,7 @@ class PrismEnv:
         self.agent_role = None
         self.injected_failure_flag = False
         self.step_count = 0
+        self.terminated = False
         
         self.atomic_injector = AtomicFailureInjector()
         self.coord_injector = CoordinationInjector()
@@ -51,6 +52,7 @@ class PrismEnv:
         self.last_tool_output = None
         self.injected_failure_flag = False
         self.step_count = 0
+        self.terminated = False
         self.orphaned_side_effects = 0
         self.total_side_effects = 0
         self.prev_done_count = 0
@@ -144,8 +146,8 @@ class PrismEnv:
         
         # Record model result if active
         llm_router.record_model_result(self.episode_id, self.step_count, reward, breakdown)
-
-        terminated = (tool == "finish") or (self.step_count >= 50)
+        
+        self.terminated = (tool == "finish") or (self.step_count >= 50)
         info = {
             "reward_breakdown": breakdown, 
             "episode_id": self.episode_id,
@@ -154,7 +156,7 @@ class PrismEnv:
             "llm_latency_ms": llm_latency_ms
         }
         
-        return self._obs(), reward, terminated, False, info
+        return self._obs(), reward, self.terminated, False, info
 
     def state(self) -> dict:
         return {
@@ -168,7 +170,8 @@ class PrismEnv:
             "step": self.step_count,
             "task_domain": self.task_domain,
             "agents": self.agents,
-            "failure_rate": self.failure_rate
+            "failure_rate": self.failure_rate,
+            "terminated": self.terminated
         }
 
     def _obs(self) -> dict:

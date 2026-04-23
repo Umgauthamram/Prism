@@ -59,6 +59,7 @@ export interface EpisodeState {
   task_domain: TaskDomain;
   agents: AgentCount;
   failure_rate: FailureRate;
+  terminated: boolean;
 }
 
 export interface ResetOptions {
