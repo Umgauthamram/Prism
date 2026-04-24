@@ -111,9 +111,29 @@ class PrismEnv:
             self.injected_failure_flag = True
             self.orphaned_side_effects += 1
             self.total_side_effects += 1
+            # Still compute reward — failure is reflected in atomic_health
+            reward, breakdown = compute_reward(
+                done_count=prev_done_count,  # nothing changed
+                prev_done_count=prev_done_count,
+                total_tasks=len(self.task_graph),
+                orphaned_side_effects=self.orphaned_side_effects,
+                total_side_effects=max(1, self.total_side_effects),
+                coord_efficiency=self.coord_injector.efficiency(),
+                hallucination_rate=0.0,
+                terminal=False,
+                grader_score=0.0,
+            )
             self.step_count += 1
             self.agent_role = ROLES[self.step_count % len(ROLES)]
-            return self._obs(), 0.0, False, False, {"error": "atomic_failure_injected"}
+            info = {
+                "reward_breakdown": breakdown,
+                "episode_id": self.episode_id,
+                "step": self.step_count,
+                "injected_failure": True,
+                "model_used": model_used,
+                "llm_latency_ms": llm_latency_ms,
+            }
+            return self._obs(), reward, False, False, info
 
         # Coordination tracking
         if tool in ["research_web", "write_world"] or "content" in args:
@@ -183,22 +203,49 @@ class PrismEnv:
 
     def _execute_tool(self, tool: str, args: dict) -> dict:
         if tool == "research_web":
-            return registry.research_web(args.get("q", ""))
+            res = registry.research_web(args.get("q", ""))
+            # Advance task graph: pending → running for first eligible node
+            for k, v in self.task_graph.items():
+                if v["status"] == "pending":
+                    deps_met = all(
+                        self.task_graph[d]["status"] == "done"
+                        for d in v["dependencies"]
+                    )
+                    if deps_met:
+                        v["status"] = "running"
+                        break
+            return res
         elif tool == "write_code":
             self.total_side_effects += 1
             res = registry.write_code(args.get("path", ""), args.get("body", ""), self.fs_dict)
+            # Advance task graph: running → done, or pending → done
+            advanced = False
             for k, v in self.task_graph.items():
-                if v["status"] == "pending":
+                if v["status"] == "running":
                     v["status"] = "done"
+                    advanced = True
                     break
+            if not advanced:
+                for k, v in self.task_graph.items():
+                    if v["status"] == "pending":
+                        v["status"] = "done"
+                        break
             return res
         elif tool == "run_tests":
             self.total_side_effects += 1
             res = registry.run_tests(args.get("path", ""), self.task_graph)
+            # Advance task graph: running → done, or pending → done
+            advanced = False
             for k, v in self.task_graph.items():
-                if v["status"] == "pending":
+                if v["status"] == "running":
                     v["status"] = "done"
+                    advanced = True
                     break
+            if not advanced:
+                for k, v in self.task_graph.items():
+                    if v["status"] == "pending":
+                        v["status"] = "done"
+                        break
             return res
         elif tool == "db_preflight":
             return registry.db_preflight(args.get("spec", {}), self.preflights)
@@ -218,6 +265,10 @@ class PrismEnv:
         elif tool == "critique":
             return registry.critique(args.get("target", ""))
         elif tool == "finish":
+            # Flip all remaining "running" nodes to "done" before grading
+            for k, v in self.task_graph.items():
+                if v["status"] == "running":
+                    v["status"] = "done"
             g_func = None
             if self.task_domain == "debug": g_func = debugging.grade
             elif self.task_domain == "market_research": g_func = market_research.grade

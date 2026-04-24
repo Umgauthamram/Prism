@@ -31,7 +31,7 @@ def compute_reward(
     terminal_bonus = grader_score if terminal else 0.0
     
     # Formula
-    r = (0.40 * progress_delta + 
+    r = (0.40 * _clamp(progress_delta) + 
          0.20 * _clamp(atomic_health) + 
          0.20 * _clamp(coord_efficiency) + 
          0.10 * _clamp(hallucination_penalty) + 
