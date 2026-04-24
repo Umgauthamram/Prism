@@ -2,7 +2,7 @@
 title: prism — Multi-Agent RL Reliability Environment
 emoji: 🌈
 colorFrom: purple
-colorTo: cyan
+colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: true
