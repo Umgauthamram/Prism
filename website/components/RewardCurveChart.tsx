@@ -35,7 +35,7 @@ export default function RewardCurveChart() {
 
   if (error) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-red-900 bg-red-950/20 text-red-500">
+      <div className="flex h-64 items-center justify-center border-2 border-black bg-red-50 text-red-600 font-bold uppercase text-xs">
         {error}
       </div>
     );
@@ -43,7 +43,7 @@ export default function RewardCurveChart() {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-gray-800 bg-[#0a0a0f] text-gray-500">
+      <div className="flex h-64 items-center justify-center border-2 border-black bg-white text-black/20 font-black uppercase text-xs">
         Waiting for training data…
       </div>
     );
@@ -60,50 +60,51 @@ export default function RewardCurveChart() {
   }));
 
   return (
-    <div className="glass-panel rounded-2xl p-6">
+    <div className="glass-panel p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white">
-            Reward Trajectories
+          <h3 className="text-sm font-black uppercase tracking-widest text-black">
+            Reward Trajectory
           </h3>
-          <p className="text-xs text-gray-500">Real-time performance across 5 reward vectors</p>
+          <p className="text-xs text-black/40">Real-time performance across 5 reward vectors</p>
         </div>
       </div>
-      <div className="h-72 w-full">
+      <div className="h-96 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-            <XAxis dataKey="step" stroke="#4b5563" fontSize={10} tickLine={false} axisLine={false} />
-            <YAxis domain={[0, 1]} stroke="#4b5563" fontSize={10} tickLine={false} axisLine={false} />
+          <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#00000015" vertical={false} />
+            <XAxis dataKey="step" stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
+            <YAxis domain={[0, 1]} stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
             <Tooltip
               contentStyle={{ 
-                backgroundColor: "rgba(5, 5, 8, 0.9)", 
-                borderColor: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "12px",
-                backdropFilter: "blur(10px)",
-                fontSize: "10px"
+                backgroundColor: "#ffffff", 
+                borderColor: "#000000",
+                borderWidth: "2px",
+                borderRadius: "0px",
+                fontSize: "11px",
+                fontWeight: "bold"
               }}
               itemStyle={{ padding: "2px 0" }}
             />
             <Legend 
-              iconType="circle" 
-              wrapperStyle={{ paddingTop: "20px", fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em" }} 
+              iconType="rect" 
+              wrapperStyle={{ paddingTop: "25px", fontSize: "11px", fontStyle: "normal", fontWeight: "900", textTransform: "uppercase", letterSpacing: "0.05em" }} 
             />
             <Line
               type="monotone"
               dataKey="total"
-              stroke="#10b981"
-              strokeWidth={3}
+              stroke="#000000"
+              strokeWidth={4}
               name="Total Reward"
               dot={false}
+              activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
               animationDuration={500}
             />
             <Line
               type="monotone"
               dataKey="progress"
               stroke="#3b82f6"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
+              strokeWidth={2.5}
               name="Progress"
               dot={false}
             />
@@ -111,8 +112,7 @@ export default function RewardCurveChart() {
               type="monotone"
               dataKey="atomic"
               stroke="#f59e0b"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
+              strokeWidth={2.5}
               name="Atomic"
               dot={false}
             />
@@ -120,8 +120,7 @@ export default function RewardCurveChart() {
               type="monotone"
               dataKey="coord"
               stroke="#8b5cf6"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
+              strokeWidth={2.5}
               name="Coord"
               dot={false}
             />
@@ -129,8 +128,7 @@ export default function RewardCurveChart() {
               type="monotone"
               dataKey="hallucination"
               stroke="#ef4444"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
+              strokeWidth={2.5}
               name="Hallucination"
               dot={false}
             />
@@ -138,8 +136,7 @@ export default function RewardCurveChart() {
               type="monotone"
               dataKey="terminal"
               stroke="#ec4899"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
+              strokeWidth={2.5}
               name="Terminal"
               dot={false}
             />

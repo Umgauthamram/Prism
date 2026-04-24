@@ -107,9 +107,11 @@ const BASE = typeof window !== 'undefined'
 const API_BASE = BASE;
 
 export async function fetchHealth() {
-  const res = await fetch(`${API_BASE}/health`);
+  const res = await fetch(`${API_BASE}/health?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error("Backend offline");
-  return res.json();
+  const data = await res.json();
+  if (data.status !== "ok" || data.project !== "prism") throw new Error("Invalid backend");
+  return data;
 }
 
 export async function fetchMetrics(): Promise<Metrics> {

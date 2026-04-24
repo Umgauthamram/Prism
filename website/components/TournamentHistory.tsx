@@ -36,20 +36,20 @@ export default function TournamentHistory() {
 
   if (loading && history.length === 0) {
     return (
-      <div className="glass-panel rounded-2xl p-6 text-center text-[10px] font-black uppercase tracking-widest text-gray-500">
+      <div className="glass-panel p-6 text-center text-[10px] font-black uppercase tracking-widest text-black/40">
         Loading Archive...
       </div>
     );
   }
 
   return (
-    <div className="glass-panel rounded-2xl p-6 overflow-hidden">
+    <div className="glass-panel p-6 overflow-hidden">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-black uppercase tracking-widest text-white">Tournament Archive</h3>
-          <p className="text-xs text-gray-500">Persistent evaluation history</p>
+          <h3 className="text-sm font-black uppercase tracking-widest text-black">Tournament Archive</h3>
+          <p className="text-xs text-black/40">Persistent evaluation history</p>
         </div>
-        <div className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+        <div className="text-[10px] font-black text-white bg-black px-2 py-1 border-2 border-black">
           {history.length} RECORDS
         </div>
       </div>
@@ -63,34 +63,34 @@ export default function TournamentHistory() {
           history.map((record) => (
             <div 
               key={record.id} 
-              className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all group"
+              className="flex items-center justify-between p-3 border-2 border-black bg-white hover:bg-gray-50 transition-all group"
             >
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase text-white truncate max-w-[150px]">
+                  <span className="text-[10px] font-black uppercase text-black truncate max-w-[150px]">
                     {record.model.split("/").pop()}
                   </span>
-                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500">
+                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 border border-black bg-black text-white">
                     {record.domain}
                   </span>
                 </div>
-                <div className="text-[8px] text-gray-500 font-mono">
+                <div className="text-[8px] text-black/40 font-mono">
                   ID: {record.id.slice(0, 8)}... | {new Date(record.timestamp * 1000).toLocaleTimeString()}
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="text-[10px] font-black text-emerald-500">
+                  <div className="text-[10px] font-black text-black">
                     {record.final_reward.toFixed(2)}
                   </div>
-                  <div className="text-[8px] font-black text-gray-600 uppercase">
+                  <div className="text-[8px] font-black text-black/40 uppercase">
                     {record.steps} STEPS
                   </div>
                 </div>
                 <button 
                   onClick={() => window.open(`${process.env.NEXT_PUBLIC_ENV_URL || ''}/history/${record.id}`, '_blank')}
-                  className="opacity-0 group-hover:opacity-100 transition-all rounded-lg bg-white text-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest"
+                  className="opacity-0 group-hover:opacity-100 transition-all bg-black text-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest border border-black"
                 >
                   View JSON
                 </button>

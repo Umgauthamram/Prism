@@ -84,7 +84,7 @@ class ModelTestRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "timestamp": time.time()}
+    return {"status": "ok", "project": "prism", "timestamp": time.time()}
 
 @app.post("/reset")
 def reset(req: ResetRequest):

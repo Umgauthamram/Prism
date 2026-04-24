@@ -38,7 +38,7 @@ export default function TransferScoreChart() {
 
   if (!metrics || metrics.transfer_scores.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-gray-800 bg-[#0a0a0f] text-gray-500">
+      <div className="flex h-64 items-center justify-center border-2 border-black bg-white text-black/20 font-black uppercase text-xs">
         Transfer scores logged every 50 episodes…
       </div>
     );
@@ -57,48 +57,49 @@ export default function TransferScoreChart() {
   });
 
   return (
-    <div className="glass-panel rounded-2xl p-6">
+    <div className="glass-panel p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-white">
+          <h3 className="text-sm font-black uppercase tracking-widest text-black">
             Cross-Domain Generalization
           </h3>
-          <p className="text-xs text-gray-500">Zero-shot transfer performance across domains</p>
+          <p className="text-xs text-black/40">Zero-shot transfer performance across domains</p>
         </div>
       </div>
-      <div className="h-72 w-full">
+      <div className="h-96 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={groupedData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-            <XAxis dataKey="eval_episode" stroke="#4b5563" fontSize={10} tickLine={false} axisLine={false} />
-            <YAxis domain={[0, 1]} stroke="#4b5563" fontSize={10} tickLine={false} axisLine={false} />
+          <LineChart data={groupedData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#00000015" vertical={false} />
+            <XAxis dataKey="eval_episode" stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
+            <YAxis domain={[0, 1]} stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
             <Tooltip
               contentStyle={{ 
-                backgroundColor: "rgba(5, 5, 8, 0.9)", 
-                borderColor: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "12px",
-                backdropFilter: "blur(10px)",
-                fontSize: "10px"
+                backgroundColor: "#ffffff", 
+                borderColor: "#000000",
+                borderWidth: "2px",
+                borderRadius: "0px",
+                fontSize: "11px",
+                fontWeight: "bold"
               }}
             />
             <Legend 
-              iconType="circle" 
-              wrapperStyle={{ paddingTop: "20px", fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.05em" }} 
+              iconType="rect" 
+              wrapperStyle={{ paddingTop: "25px", fontSize: "11px", fontWeight: "900", textTransform: "uppercase", letterSpacing: "0.05em" }} 
             />
             
             {metrics.curriculum_stages.map((stage) => (
               <ReferenceLine
                 key={stage.stage}
                 x={stage.stage * 100}
-                stroke="#ffffff10"
-                strokeDasharray="3 3"
-                label={{ value: `Stage ${stage.stage}`, position: 'top', fill: '#4b5563', fontSize: 8, fontWeight: 'bold' }}
+                stroke="#00000030"
+                strokeDasharray="5 5"
+                label={{ value: `Stage ${stage.stage}`, position: 'top', fill: '#000000', fontSize: 10, fontWeight: '900' }}
               />
             ))}
 
-            <Line type="monotone" dataKey="debug" stroke="#10b981" strokeWidth={2} name="Debug" dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="market_research" stroke="#3b82f6" strokeWidth={2} name="Research" dot={{ r: 4, fill: '#3b82f6' }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="etl" stroke="#ec4899" strokeWidth={2} name="ETL" dot={{ r: 4, fill: '#ec4899' }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="debug" stroke="#10b981" strokeWidth={3} name="Debug" dot={{ r: 5, fill: '#10b981' }} activeDot={{ r: 7 }} />
+            <Line type="monotone" dataKey="market_research" stroke="#3b82f6" strokeWidth={3} name="Research" dot={{ r: 5, fill: '#3b82f6' }} activeDot={{ r: 7 }} />
+            <Line type="monotone" dataKey="etl" stroke="#ec4899" strokeWidth={3} name="ETL" dot={{ r: 5, fill: '#ec4899' }} activeDot={{ r: 7 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

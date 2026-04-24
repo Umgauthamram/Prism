@@ -78,48 +78,46 @@ export default function ModelSelector() {
   };
 
   return (
-    <div className="glass-panel space-y-6 rounded-2xl p-6">
+    <div className="glass-panel space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black uppercase tracking-widest text-white">Model Selector</h3>
+        <h3 className="text-sm font-black uppercase tracking-widest text-black">Model Policy</h3>
         {config?.active_model ? (
-          <div className="flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">
+          <div className="flex items-center gap-2 border-2 border-black bg-black px-3 py-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-white">
                 {config.active_provider} / {config.active_model.split('-').pop()}
             </span>
           </div>
         ) : (
-          <span className="text-[9px] font-black uppercase tracking-widest text-gray-600">No model active</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-black/40">No model active</span>
         )}
       </div>
 
-      {/* Provider Selector */}
       <div className="grid grid-cols-3 gap-2">
         {Object.keys(available).map((p) => (
           <button
             key={p}
             onClick={() => setSelectedProvider(p)}
-            className={`flex flex-col items-center justify-center rounded-xl border py-3 transition-all ${
+            className={`flex flex-col items-center justify-center border-2 py-3 transition-all ${
               selectedProvider === p
-                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                : "border-white/5 bg-white/5 text-gray-500 hover:bg-white/10"
+                ? "border-black bg-black text-white shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+                : "border-black bg-white text-black hover:bg-gray-50"
             }`}
           >
             <span className="text-[10px] font-black uppercase tracking-widest">{p}</span>
             {config?.providers[p]?.configured && (
-              <span className="mt-1 text-[8px] font-bold text-emerald-500">✓ SAVED</span>
+              <span className="mt-1 text-[8px] font-bold text-black opacity-40">✓ SAVED</span>
             )}
           </button>
         ))}
       </div>
 
-      {/* Model Selector */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Select Model</label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-black/40">Select Model</label>
         <select
           value={selectedModel}
           onChange={(e) => setSelectedModel(e.target.value)}
-          className="w-full rounded-xl border border-white/5 bg-black/40 p-3 text-xs text-white focus:border-emerald-500/50 focus:outline-none"
+          className="w-full border-2 border-black bg-white p-3 text-xs text-black focus:outline-none"
         >
           {available[selectedProvider]?.models.map((m) => (
             <option key={m} value={m}>
@@ -129,15 +127,14 @@ export default function ModelSelector() {
         </select>
       </div>
 
-      {/* API Key */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+          <label className="text-[10px] font-black uppercase tracking-widest text-black/40">
             {selectedProvider.toUpperCase()} API KEY
           </label>
           <button 
             onClick={() => setShowKey(!showKey)}
-            className="text-[9px] font-bold text-gray-600 hover:text-gray-400"
+            className="text-[9px] font-bold text-black/60 hover:text-black"
           >
             {showKey ? "HIDE" : "SHOW"}
           </button>
@@ -147,23 +144,22 @@ export default function ModelSelector() {
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           placeholder={`Enter your ${selectedProvider} key...`}
-          className="w-full rounded-xl border border-white/5 bg-black/40 p-3 font-mono text-xs text-gray-300 focus:border-emerald-500/50 focus:outline-none"
+          className="w-full border-2 border-black bg-white p-3 font-mono text-xs text-black focus:outline-none"
         />
       </div>
 
-      {/* Action Buttons */}
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={handleTest}
           disabled={loading || !apiKey}
-          className="rounded-xl border border-white/10 bg-white/5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/10 disabled:opacity-50"
+          className="border-2 border-black bg-white py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-gray-100 disabled:opacity-50"
         >
           {loading ? "..." : "Test Link"}
         </button>
         <button
           onClick={handleSave}
           disabled={loading || !apiKey}
-          className="rounded-xl bg-white py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-gray-200 disabled:opacity-50"
+          className="bg-black py-3 text-[10px] font-black uppercase tracking-widest text-white hover:bg-gray-800 disabled:opacity-50 border-2 border-black"
         >
           {loading ? "..." : "Set Active"}
         </button>

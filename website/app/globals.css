@@ -1,59 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030305;
-  --foreground: #f8fafc;
-  --accent-emerald: #10b981;
-  --accent-blue: #3b82f6;
-  --card-bg: rgba(13, 13, 18, 0.7);
-  --card-border: rgba(255, 255, 255, 0.05);
+  --background: #ffffff;
+  --foreground: #000000;
+  --accent: #000000;
+  --card-bg: #ffffff;
+  --card-border: #000000;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0, transparent 40%),
-    radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.08) 0, transparent 40%),
-    radial-gradient(at 50% 50%, rgba(15, 23, 42, 1) 0, transparent 100%);
   min-height: 100vh;
   letter-spacing: -0.01em;
+  font-size: 1.25rem; /* Increased base font size */
 }
 
 @layer components {
   .glass-panel {
-    background-color: var(--card-bg);
-    border: 1px solid var(--card-border);
-    backdrop-filter: blur(20px);
-    border-radius: 24px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    background-color: #ffffff;
+    border: 3px solid #000000;
+    border-radius: 0px; /* Brutalist style */
+    box-shadow: 10px 10px 0px rgba(0, 0, 0, 1);
+    padding: 2.5rem;
   }
   
   .tech-card {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(145deg, rgba(20, 20, 25, 0.9), rgba(10, 10, 15, 0.9));
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    border-radius: 20px;
-  }
-
-  .tech-card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 40%);
-    pointer-events: none;
+    background: #ffffff;
+    border: 3px solid #000000;
+    border-radius: 0px;
+    box-shadow: 6px 6px 0px rgba(0, 0, 0, 1);
   }
 
   .text-gradient {
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    background-image: linear-gradient(135deg, #34d399 0%, #3b82f6 100%);
+    color: #000000;
   }
 
   .neon-glow {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    box-shadow: 10px 10px 0px rgba(0, 0, 0, 1);
   }
 }
 
@@ -64,6 +50,6 @@ body {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   border-radius: 10px;
 }
