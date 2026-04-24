@@ -90,7 +90,21 @@ export interface ModelComparisonData {
   models: Record<string, RewardPoint[]>;
 }
 
-const API_BASE = "/api/env";
+export interface HistoryItem {
+  id: string;
+  model: string;
+  provider: string;
+  domain: TaskDomain;
+  final_reward: number;
+  steps: number;
+  timestamp: number;
+}
+
+const BASE = typeof window !== 'undefined'
+  ? (process.env.NEXT_PUBLIC_ENV_URL || '')
+  : '';
+
+const API_BASE = BASE;
 
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
@@ -120,6 +134,16 @@ export async function resetEpisode(options: ResetOptions) {
   return res.json();
 }
 
+export async function step(tool: string, args: any = {}, episodeId: string | null = null) {
+  const res = await fetch(`${API_BASE}/step`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tool, args, episode_id: episodeId }),
+  });
+  if (!res.ok) throw new Error("Failed to execute step");
+  return res.json();
+}
+
 // Model Evaluation Functions
 export async function fetchModelsConfig(): Promise<ModelsConfig> {
   const res = await fetch(`${API_BASE}/models/config`);
@@ -133,11 +157,11 @@ export async function fetchAvailableModels(): Promise<Record<string, { models: s
   return res.json();
 }
 
-export async function setModelConfig(provider: string, model: string, api_key: string) {
+export async function setModelConfig(provider: string, model: string, api_key: string, episodeId: string | null = null) {
   const res = await fetch(`${API_BASE}/models/config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ provider, model, api_key }),
+    body: JSON.stringify({ provider, model, api_key, episode_id: episodeId }),
   });
   if (!res.ok) throw new Error("Failed to set model config");
   return res.json();
@@ -161,4 +185,16 @@ export async function fetchModelComparison(): Promise<ModelComparisonData> {
   } catch (err) {
     return { models: {} };
   }
+}
+
+export async function fetchHistory(): Promise<HistoryItem[]> {
+  const res = await fetch(`${API_BASE}/history`);
+  if (!res.ok) throw new Error("Failed to fetch history");
+  return res.json();
+}
+
+export async function fetchHistoryDetail(eid: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/history/${eid}`);
+  if (!res.ok) throw new Error("Failed to fetch history detail");
+  return res.json();
 }

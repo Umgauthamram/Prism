@@ -1,13 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  trailingSlash: true,
   async rewrites() {
-    return [
-      {
-        source: '/api/env/:path*',
-        destination: `${process.env.NEXT_PUBLIC_ENV_URL || 'http://localhost:8000'}/:path*`,
-      },
-    ];
+    return [];
   },
 };
 

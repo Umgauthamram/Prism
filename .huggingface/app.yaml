@@ -1,0 +1,7 @@
+title: prism-rl-environment
+emoji: 🌈
+colorFrom: purple
+colorTo: cyan
+sdk: docker
+pinned: true
+app_port: 7860

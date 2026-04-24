@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { fetchHistory as apiFetchHistory, HistoryItem } from "../lib/api";
 
 interface HistoryRecord {
   id: string;
@@ -13,14 +14,12 @@ interface HistoryRecord {
 }
 
 export default function TournamentHistory() {
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchHistory = async () => {
+  const fetchHistoryData = async () => {
     try {
-      const res = await fetch("/api/env/history");
-      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetchHistory();
       setHistory(data);
     } catch (err) {
       console.error("Failed to fetch history", err);
@@ -30,8 +29,8 @@ export default function TournamentHistory() {
   };
 
   useEffect(() => {
-    fetchHistory();
-    const interval = setInterval(fetchHistory, 5000);
+    fetchHistoryData();
+    const interval = setInterval(fetchHistoryData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -90,7 +89,7 @@ export default function TournamentHistory() {
                   </div>
                 </div>
                 <button 
-                  onClick={() => window.open(`/api/env/history/${record.id}`, '_blank')}
+                  onClick={() => window.open(`${process.env.NEXT_PUBLIC_ENV_URL || ''}/history/${record.id}`, '_blank')}
                   className="opacity-0 group-hover:opacity-100 transition-all rounded-lg bg-white text-black px-3 py-1.5 text-[9px] font-black uppercase tracking-widest"
                 >
                   View JSON

@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchState, EpisodeState } from "@/lib/api";
-
-const API_BASE = "/api/env";
+import { fetchState, EpisodeState, step } from "@/lib/api";
 
 const roleColors: Record<string, string> = {
   Planner: "bg-violet-500/20 text-violet-400 border-violet-500/50",
@@ -25,6 +23,7 @@ export default function EpisodeViewer() {
   const [autoRun, setAutoRun] = useState(false);
   const [stepping, setStepping] = useState(false);
   const [showToolOutput, setShowToolOutput] = useState(false);
+  const [stepTimers, setStepTimers] = useState<{step: number, duration: number}[]>([]);
 
   useEffect(() => {
     const poll = async () => {
@@ -47,19 +46,20 @@ export default function EpisodeViewer() {
       timer = setTimeout(handleStep, 1500);
     }
     return () => clearTimeout(timer);
-  }, [autoRun, state, stepping]);
+  }, [autoRun, state?.step, state?.terminated, stepping]);
 
   const handleStep = async () => {
     if (!state || state.terminated || stepping) return;
     setStepping(true);
+    const start = Date.now();
     try {
-      await fetch(`${API_BASE}/step`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool: "checkpoint", args: {} }),
-      });
+      await step("checkpoint", {});
+      const end = Date.now();
+      const duration = (end - start) / 1000;
+      
       const newState = await fetchState();
       setState(newState);
+      setStepTimers(prev => [...prev, { step: state.step, duration }]);
     } catch (err) {
       console.error("Step failed");
     } finally {
@@ -83,6 +83,11 @@ export default function EpisodeViewer() {
           <div className={`rounded-lg border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${roleColors[state.agent_role]}`}>
             {state.agent_role}
           </div>
+          {state.terminated && (
+            <div className="rounded-lg bg-emerald-500/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-500 border border-emerald-500/50">
+              FINISHED
+            </div>
+          )}
           <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Step {state.step}
@@ -163,6 +168,23 @@ export default function EpisodeViewer() {
             </pre>
           </div>
         )}
+      </div>
+
+      {/* Step Latency Log */}
+      <div className="space-y-3 pt-4 border-t border-white/5">
+        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Step Performance Log</h4>
+        <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto custom-scrollbar">
+            {stepTimers.length === 0 ? (
+                <div className="text-[8px] text-gray-700 italic">No steps recorded yet...</div>
+            ) : (
+                stepTimers.map((t, idx) => (
+                    <div key={idx} className="bg-white/5 border border-white/5 rounded px-2 py-1 flex items-center gap-2">
+                        <span className="text-[8px] font-bold text-gray-500">#{t.step}</span>
+                        <span className="text-[10px] font-black text-blue-400">{t.duration.toFixed(2)}s</span>
+                    </div>
+                ))
+            )}
+        </div>
       </div>
 
       {/* Footer */}

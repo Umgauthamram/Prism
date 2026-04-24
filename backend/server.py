@@ -9,6 +9,12 @@ import os
 import wandb
 import json
 
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.text import Text
+console = Console()
+
 from .environment import PrismEnv
 from . import llm_router
 from .curriculum import CurriculumManager
@@ -92,6 +98,17 @@ def reset(req: ResetRequest):
     _active_episode_id = eid
     _total_episodes += 1
     
+    console.print(Panel(
+        f"[bold cyan]EPISODE RESET[/bold cyan]\n"
+        f"Domain: [yellow]{env.task_domain}[/yellow]  "
+        f"Agents: [green]{env.agents}[/green]  "
+        f"Failure Rate: [red]{env.failure_rate}[/red]  "
+        f"Seed: [blue]{req.seed}[/blue]\n"
+        f"Episode ID: [dim]{eid[:8]}...[/dim]",
+        title="[bold]prism RL Environment[/bold]",
+        border_style="cyan"
+    ))
+    
     return obs
 
 @app.post("/step")
@@ -104,6 +121,26 @@ async def step(req: StepRequest):
             
         env = _episodes[eid]
         obs, reward, terminated, truncated, info = await env.step(req.dict())
+        
+        breakdown = info.get("reward_breakdown", {"total": reward})
+        table = Table(show_header=True, header_style="bold magenta", title=f"Step {env.step_count} | Role: {env.agent_role}")
+        table.add_column("Component", style="cyan", width=22)
+        table.add_column("Value", justify="right", style="green")
+        table.add_column("Weight", justify="right", style="dim")
+        table.add_row("Progress Delta", f"{breakdown.get('progress_delta', 0):.4f}", "×0.40")
+        table.add_row("Atomic Health", f"{breakdown.get('atomic_health', 0):.4f}", "×0.20")
+        table.add_row("Coord Efficiency", f"{breakdown.get('coord_efficiency', 0):.4f}", "×0.20")
+        table.add_row("Hallucination Pen.", f"{breakdown.get('hallucination_penalty', 0):.4f}", "×0.10")
+        table.add_row("Terminal Bonus", f"{breakdown.get('terminal_bonus', 0):.4f}", "×0.10")
+        table.add_section()
+        table.add_row("[bold]TOTAL REWARD[/bold]", f"[bold yellow]{reward:.4f}[/bold yellow]", "")
+        console.print(table)
+        
+        if env.injected_failure_flag:
+            console.print("[bold red]⚠ INJECTED FAILURE ACTIVE — Atomic Failure Injector triggered[/bold red]")
+            
+        if info.get("error") == "role_contract_violation":
+            console.print(f"[red]✗ ROLE VIOLATION: {env.agent_role} tried '{req.tool}' — reward zeroed[/red]")
         
         # Update global metrics
         _reward_curve.append({
@@ -171,6 +208,12 @@ def get_state(episode_id: Optional[str] = None):
 
 @app.get("/metrics")
 def get_metrics():
+    console.print(
+        f"[dim]📊 metrics polled | "
+        f"episodes={_total_episodes} | "
+        f"rolling_reward={_rolling_reward:.3f} | "
+        f"stage={_curriculum.stage}[/dim]"
+    )
     return {
         "reward_curve": _reward_curve,
         "transfer_scores": _domain_shift.get_scores(),
@@ -234,3 +277,22 @@ async def test_connection(req: ModelTestRequest):
 @app.get("/models/comparison")
 def get_model_comparison():
     return llm_router.get_model_comparison()
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    @app.get("/")
+    async def serve_frontend():
+        return FileResponse(os.path.join(static_dir, "index.html"))
+    
+    @app.get("/{full_path:path}")
+    async def serve_frontend_routes(full_path: str):
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(static_dir, "index.html"))

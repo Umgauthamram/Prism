@@ -94,6 +94,8 @@ class PrismEnv:
         tool = action.get("tool")
         args = action.get("args", {})
         
+        prev_done_count = sum(1 for v in self.task_graph.values() if v["status"] == "done")
+        
         if self.step_count >= 50:
             return self._obs(), 0.0, True, False, {"error": "max_steps_exceeded"}
 
@@ -114,8 +116,10 @@ class PrismEnv:
             return self._obs(), 0.0, False, False, {"error": "atomic_failure_injected"}
 
         # Coordination tracking
-        if "content" in args:
-            self.coord_injector.record_token(args["content"], args.get("useful", True))
+        if tool in ["research_web", "write_world"] or "content" in args:
+            content = args.get("content") or args.get("q") or str(args.get("update", ""))
+            if content:
+                self.coord_injector.record_token(str(content), args.get("useful", True))
 
         # Tool execution
         result = self._execute_tool(tool, args)
@@ -130,7 +134,7 @@ class PrismEnv:
             
         reward, breakdown = compute_reward(
             done_count=done_count,
-            prev_done_count=self.prev_done_count,
+            prev_done_count=prev_done_count,
             total_tasks=len(self.task_graph),
             orphaned_side_effects=self.orphaned_side_effects,
             total_side_effects=max(1, self.total_side_effects),
@@ -182,9 +186,20 @@ class PrismEnv:
             return registry.research_web(args.get("q", ""))
         elif tool == "write_code":
             self.total_side_effects += 1
-            return registry.write_code(args.get("path", ""), args.get("body", ""), self.fs_dict)
+            res = registry.write_code(args.get("path", ""), args.get("body", ""), self.fs_dict)
+            for k, v in self.task_graph.items():
+                if v["status"] == "pending":
+                    v["status"] = "done"
+                    break
+            return res
         elif tool == "run_tests":
-            return registry.run_tests(args.get("path", ""), self.task_graph)
+            self.total_side_effects += 1
+            res = registry.run_tests(args.get("path", ""), self.task_graph)
+            for k, v in self.task_graph.items():
+                if v["status"] == "pending":
+                    v["status"] = "done"
+                    break
+            return res
         elif tool == "db_preflight":
             return registry.db_preflight(args.get("spec", {}), self.preflights)
         elif tool == "db_commit":

@@ -1,17 +1,18 @@
-FROM python:3.11-slim
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
+COPY website/package.json ./
+RUN npm install
+COPY website/ .
+RUN echo "NEXT_PUBLIC_ENV_URL=" > .env.production
+RUN npm run build
 
+FROM python:3.11-slim AS final
 WORKDIR /app
-
-# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy backend and training code
 COPY backend/ ./backend/
 COPY training/ ./training/
-COPY .env .env
-
-EXPOSE 8000
-
-# Start the FastAPI server
-CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY run_demo.py .
+COPY --from=frontend-builder /app/frontend/out ./static
+EXPOSE 7860
+CMD ["uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "7860"]

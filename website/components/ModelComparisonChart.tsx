@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { fetchModelComparison, RewardPoint } from "@/lib/api";
+import { fetchModelComparison, RewardPoint, resetEpisode, setModelConfig, step } from "@/lib/api";
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444", "#ec4899"];
 
@@ -19,6 +19,7 @@ export default function ModelComparisonChart() {
   const [data, setData] = useState<Record<string, RewardPoint[]>>({});
   const [loading, setLoading] = useState(true);
   const [tournamentRunning, setTournamentRunning] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, string>>({});
 
   const startTournament = async () => {
     // 1. Get all models that the user has configured/selected
@@ -47,33 +48,21 @@ export default function ModelComparisonChart() {
 
   const runTournamentEpisode = async (provider: string, model: string, domain: string) => {
     try {
-        const resetRes = await fetch("/api/env/reset", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ seed: 42, options: { task_domain: domain, agents: 4 } })
-        });
-        const obs = await resetRes.json();
+        setStatuses(prev => ({ ...prev, [`${provider}/${model}`]: "running" }));
+        const obs = await resetEpisode({ task_domain: domain as any, agents: 4, failure_rate: 0, seed: 42 });
         const eid = obs.episode_id;
 
-        await fetch("/api/env/models/config", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ provider, model, api_key: "SAVED", episode_id: eid })
-        });
+        await setModelConfig(provider, model, "SAVED", eid);
 
         let done = false;
-        let step = 0;
-        while (!done && step < 30) {
-            const stepRes = await fetch("/api/env/step", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tool: "checkpoint", args: {}, episode_id: eid })
-            });
-            const data = await stepRes.json();
+        let currentStep = 0;
+        while (!done && currentStep < 30) {
+            const data = await step("checkpoint", {}, eid);
             done = data.terminated;
-            step++;
+            currentStep++;
             await new Promise(r => setTimeout(r, 1000));
         }
+        setStatuses(prev => ({ ...prev, [`${provider}/${model}`]: "finished" }));
     } catch (err) {
         console.error(`Tournament episode for ${model} failed`, err);
     }
@@ -131,6 +120,19 @@ export default function ModelComparisonChart() {
           {tournamentRunning ? "Tournament Active" : "Start Tournament"}
         </button>
       </div>
+
+      {Object.keys(statuses).length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+            {Object.entries(statuses).map(([key, status]) => (
+                <div key={key} className={`rounded-lg border px-3 py-1 text-[8px] font-black uppercase tracking-widest flex items-center gap-2 ${
+                    status === "running" ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                }`}>
+                    <span className={`h-1 w-1 rounded-full ${status === "running" ? "bg-blue-500 animate-pulse" : "bg-emerald-500"}`} />
+                    {key.split("/").pop()} : {status}
+                </div>
+            ))}
+        </div>
+      )}
 
       <div className="h-72 w-full">
         {modelKeys.length === 0 ? (
