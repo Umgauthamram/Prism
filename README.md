@@ -570,6 +570,12 @@ python run_demo.py
 
 ## Section 16: Results
 
+🚀 **Interactive Training Demo**: [Run on Google Colab](https://colab.research.google.com/drive/1EWLMiGzWRkN1JxBCcPnUQS3A8MogK_-S?usp=sharing)
+
+### Behavioral Learning Curve (from Colab)
+![Colab Learning Curve] (https://drive.google.com/file/d/1bzLT9fi56ytMnVqKVhwu24DIe_AeL4wE/view?usp=sharing)
+*Evidence from a real-time training run in Google Colab. The model shows a clear upward trend in reward as it masters the Failure Primitives.*
+
 ### Training Dynamics: Learning Reliability
 ![Training Evidence](training_output/training_evidence.png)
 *Jury Evidence: Proof of environment learnability. Panel A shows the **Reward Curve** across 3 stages of failure injection; models learn to recover from non-deterministic crashes using `checkpoint` tools. Panel B shows **Loss Convergence** during policy optimization.*
