@@ -33,19 +33,25 @@ tags:
 
 ---
 
-## Section 1: Overview
+## The Prism Story: Bridging the Reliability Gap
 
-Reliability in multi-agent LLM systems is often bottlenecked by a "coordination tax" that scales poorly beyond a few concurrent agents. In production, three specific failure modes dominate: coordination overhead leading to redundant work, non-atomic failures that leave the system in an inconsistent state after a mid-task crash, and the "narrow specialist" trap where an agent's learned reliability improvements in one domain fail to transfer to another. These are not merely theoretical challenges; they are the documented blockers preventing the deployment of long-horizon autonomous systems in enterprise environments.
+### 1. The Problem: Why LLM Agents Fail in Production
+Reliability in multi-agent LLM systems is often bottlenecked by a "coordination tax" that scales poorly beyond a few concurrent agents. In production, three specific failure modes dominate: 
+- **Coordination Overlap**: Redundant work and communication noise.
+- **Non-Atomic State**: Mid-task crashes that leave files or databases in corrupted, half-finished states.
+- **Narrow Specialization**: The "specialist trap" where agents fail to transfer reliability improvements from one professional domain to another.
 
-**prism** reframes these failures as measurable, trainable signals. Instead of hardcoding 100 scenarios, we designed the environment around **Failure Primitives**. Each primitive is parameterized, allowing it to generate a vast family of scenarios programmatically:
+### 2. The Environment: Measurable Failure Primitives
+**Prism** reframes these failures as measurable, trainable signals. Instead of hardcoding static cases, we designed the environment around **Failure Primitives**. These primitives define a "Scenario Space" that stresses the agent through:
+- **Coordination Primitive**: Scaling concurrency from 2 to 8+ agents with shared world-model contention.
+- **Atomic Failure Primitive**: Injecting non-deterministic system state corruptions (p=0.0 to p=0.5).
+- **Transfer Primitive**: Procedural shifting between Software Debugging, Market Research, and ETL.
 
-1.  **Coordination Primitive**: Scales with number of agents, task overlap, and communication noise.
-2.  **Atomic Failure Primitive**: Generates non-deterministic crashes at different points of the transaction lifecycle (pre-write, mid-write, partial commit).
-3.  **Transfer Primitive**: Dynamically shifts tasks between disparate professional domains (Software → Research → ETL).
+### 3. The Results: Learning from Chaos
+Our 100-problem benchmark shows that models can be trained to develop "transaction-like discipline." By using a **5-component dense reward model**, we provide a strong gradient for agents to learn proactive state management (checkpoints) and information-efficient communication.
 
-This "Scenario Space" approach ensures that reliability is a genuine learned capability, not just a result of memorization.
-
-What makes **prism** novel is its focus on the reliability gap itself. Instead of just tracking task success, it uses a 5-component shaped reward model to incentivize transaction-like discipline and information-efficient communication. The environment supports model-agnostic evaluation via a live Next.js dashboard, allowing developers to switch between Groq (Llama), Gemini, and OpenAI models in real-time and compare their reward curves side-by-side.
+### 4. Why it Matters: The Path to Autonomous Enterprise
+Prism isn't just a benchmark; it's a **Frontier Testing Ground**. It allows researchers to prove that their models aren't just "lucky" on easy tasks, but are fundamentally robust enough to handle the non-deterministic chaos of real-world enterprise infrastructure.
 
 ---
 

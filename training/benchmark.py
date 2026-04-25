@@ -41,9 +41,9 @@ TRAINING_SEQUENCE = [
 PHASE_CONFIG = [
     # (phase_name, seeds, domain, failure_rate, agents, description)
     ("Phase 1: Easy Debug",      range(0,  9,  3), "debug",           0.0, 2,
-     "Easy bugs, no failures, 2 agents — baseline"),
+     "Easy bugs, no failures, 2 agents - baseline"),
     ("Phase 2: Medium Debug",    range(1,  9,  3), "debug",           0.1, 2,
-     "Medium bugs, light failures — learning begins"),
+     "Medium bugs, light failures - learning begins"),
     ("Phase 3: Hard Debug",      range(2,  9,  3), "debug",           0.2, 4,
      "Hard bugs, moderate failures, 4 agents"),
     ("Phase 4: Market Research", range(0, 10,  2), "market_research", 0.1, 2,
@@ -127,7 +127,7 @@ def run_full_benchmark():
     console.print(Panel(
         "[bold violet]prism 100-Problem Benchmark[/bold violet]\n"
         f"Environment: {BASE_URL}\n"
-        "75 problems × 3 domains + 25 held-out cross-domain",
+        "75 problems x 3 domains + 25 held-out cross-domain",
         title="OpenEnv AI Hackathon 2026",
         border_style="violet"
     ))
@@ -166,8 +166,8 @@ def run_full_benchmark():
                 "agents": agents,
             })
             console.print(
-                f"  [yellow]Phase avg={avg:.4f} "
-                f"best={best:.4f} worst={worst:.4f}[/yellow]"
+                f"  Phase avg={avg:.4f} "
+                f"best={best:.4f} worst={worst:.4f}"
             )
 
     # Save raw results
@@ -217,10 +217,10 @@ def _print_summary_table(phase_summaries):
 def _generate_all_plots(all_results, phase_summaries):
     """Generate 4 plots that tell the training story."""
 
-    # ── Plot 1: Phase Progression (the main story) ────────
+    # -- Plot 1: Phase Progression (the main story) --------
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle(
-        "prism RL Environment — Behavioral Pattern Analysis\n"
+        "prism RL Environment - Behavioral Pattern Analysis\n"
         "100-Problem Benchmark across 7 Training Phases",
         fontsize=14, fontweight='bold'
     )
@@ -256,7 +256,6 @@ def _generate_all_plots(all_results, phase_summaries):
 
     # Bottom-left: Per-step reward breakdown across all episodes
     ax = axes[1, 0]
-    component_avgs = defaultdict(list)
     components = ["progress_delta", "atomic_health", "coord_efficiency",
                   "hallucination_penalty", "terminal_bonus"]
     colors_comp = ["#34d399","#60a5fa","#fbbf24","#f87171","#e879f9"]
@@ -305,12 +304,15 @@ def _generate_all_plots(all_results, phase_summaries):
         ax.text(i, avg + 0.1, f'{avg:.3f}', ha='center', fontsize=9)
 
     plt.tight_layout()
-    plt.savefig("training_output/plots/benchmark_analysis.png",
-                dpi=150, bbox_inches='tight')
+    try:
+        plt.savefig("training_output/plots/benchmark_analysis.png",
+                    dpi=150, bbox_inches='tight')
+        console.print("  [green]OK[/green] plots/benchmark_analysis.png")
+    except Exception as e:
+        console.print(f"  [red]Plotting error (analysis): {e}[/red]")
     plt.close()
-    console.print("[green]✓ Saved: training_output/plots/benchmark_analysis.png[/green]")
 
-    # ── Plot 2: Failure Rate Effect ───────────────────────
+    # -- Plot 2: Failure Rate Effect -----------------------
     fig, ax = plt.subplots(figsize=(10, 5))
     rates_found = sorted(list(set(r["failure_rate"] for r in all_results)))
     for failure_rate in rates_found:
@@ -339,12 +341,15 @@ def _generate_all_plots(all_results, phase_summaries):
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig("training_output/plots/failure_rate_effect.png",
-                dpi=150, bbox_inches='tight')
+    try:
+        plt.savefig("training_output/plots/failure_rate_effect.png",
+                    dpi=150, bbox_inches='tight')
+        console.print("  [green]OK[/green] plots/failure_rate_effect.png")
+    except Exception as e:
+        console.print(f"  [red]Plotting error (failure_rate): {e}[/red]")
     plt.close()
-    console.print("[green]✓ Saved: training_output/plots/failure_rate_effect.png[/green]")
 
-    # ── Plot 3: Agent Count Effect ─────────────────────────
+    # -- Plot 3: Agent Count Effect -------------------------
     fig, ax = plt.subplots(figsize=(8, 5))
     counts_found = sorted(list(set(r["agents"] for r in all_results)))
     for n_agents in counts_found:
@@ -371,10 +376,13 @@ def _generate_all_plots(all_results, phase_summaries):
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig("training_output/plots/agent_count_effect.png",
-                dpi=150, bbox_inches='tight')
+    try:
+        plt.savefig("training_output/plots/agent_count_effect.png",
+                    dpi=150, bbox_inches='tight')
+        console.print("  [green]OK[/green] plots/agent_count_effect.png")
+    except Exception as e:
+        console.print(f"  [red]Plotting error (agent_count): {e}[/red]")
     plt.close()
-    console.print("[green]✓ Saved: training_output/plots/agent_count_effect.png[/green]")
 
 if __name__ == "__main__":
     run_full_benchmark()
