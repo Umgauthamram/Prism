@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY envs/ ./envs/
 COPY training/ ./training/
+COPY models.py .
+COPY client.py .
+COPY __init__.py .
+COPY openenv.yaml .
 COPY run_demo.py .
 COPY --from=frontend-builder /app/frontend/out ./static
 EXPOSE 7860
