@@ -2,11 +2,14 @@ import asyncio
 import httpx
 import os
 import json
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
 
 ENV_BASE_URL = os.getenv("NEXT_PUBLIC_ENV_URL", "http://127.0.0.1:8000")
+if len(sys.argv) > 1:
+    ENV_BASE_URL = sys.argv[1].rstrip("/")
 GROQ_KEY = os.getenv("GROQ_API_KEY")
 GOOGLE_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -49,8 +52,7 @@ async def run_contestant(client: httpx.AsyncClient, config: dict):
     while not done and steps < 50:
         # Action is dummy, backend overrides with LLM
         res = await client.post(f"{ENV_BASE_URL}/step", json={
-            "tool": "checkpoint",
-            "args": {},
+            "action": {"tool": "checkpoint", "args": {}},
             "episode_id": episode_id
         })
         

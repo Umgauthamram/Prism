@@ -101,8 +101,8 @@ export interface HistoryItem {
 }
 
 const BASE = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_ENV_URL || '')
-  : '';
+  ? (process.env.NEXT_PUBLIC_ENV_URL || 'http://localhost:8000')
+  : 'http://localhost:8000';
 
 const API_BASE = BASE;
 
@@ -140,7 +140,10 @@ export async function step(tool: string, args: any = {}, episodeId: string | nul
   const res = await fetch(`${API_BASE}/step`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tool, args, episode_id: episodeId }),
+    body: JSON.stringify({ 
+      action: { tool, args }, 
+      episode_id: episodeId 
+    }),
   });
   if (!res.ok) throw new Error("Failed to execute step");
   return res.json();

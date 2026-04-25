@@ -41,17 +41,20 @@ _domain_shift = DomainShiftInjector()
 # Ensure history directory exists
 os.makedirs("history", exist_ok=True)
 
-# Initialize a global W&B run for the tournament/evaluation
-try:
-    if os.getenv("WANDB_API_KEY"):
-        wandb.init(
-            project=os.getenv("WANDB_PROJECT", "prism-eval"),
-            entity=os.getenv("WANDB_ENTITY"),
-            name=f"tournament-{time.strftime('%m%d-%H%M')}",
-            job_type="evaluation"
-        )
-except Exception as e:
-    print(f"⚠️ W&B Initialization failed: {e}")
+@app.on_event("startup")
+async def startup_event():
+    # Initialize a global W&B run for the tournament/evaluation
+    try:
+        if os.getenv("WANDB_API_KEY"):
+            wandb.init(
+                project=os.getenv("WANDB_PROJECT", "prism-eval"),
+                entity=os.getenv("WANDB_ENTITY"),
+                name=f"tournament-{time.strftime('%m%d-%H%M')}",
+                job_type="evaluation",
+                mode="online" if os.getenv("WANDB_API_KEY") else "disabled"
+            )
+    except Exception as e:
+        console.print(f"[yellow]⚠️ W&B Initialization failed: {e}[/yellow]")
 
 def log_to_csv(model_name: str, provider: str, final_reward: float, steps: int):
     file_path = "tournament_history.csv"
@@ -67,8 +70,7 @@ class ResetRequest(BaseModel):
     options: Optional[Dict[str, Any]] = {}
 
 class StepRequest(BaseModel):
-    tool: str
-    args: Optional[Dict[str, Any]] = {}
+    action: Dict[str, Any]
     episode_id: Optional[str] = None
 
 class ModelConfigRequest(BaseModel):
@@ -120,7 +122,7 @@ async def step(req: StepRequest):
             raise HTTPException(status_code=404, detail="Episode not found")
             
         env = _episodes[eid]
-        obs, reward, terminated, truncated, info = await env.step(req.dict())
+        obs, reward, terminated, truncated, info = await env.step(req.action)
         
         breakdown = info.get("reward_breakdown", {"total": reward})
         table = Table(show_header=True, header_style="bold magenta", title=f"Step {env.step_count} | Role: {env.agent_role}")
@@ -140,7 +142,7 @@ async def step(req: StepRequest):
             console.print("[bold red]⚠ INJECTED FAILURE ACTIVE — Atomic Failure Injector triggered[/bold red]")
             
         if info.get("error") == "role_contract_violation":
-            console.print(f"[red]✗ ROLE VIOLATION: {env.agent_role} tried '{req.tool}' — reward zeroed[/red]")
+            console.print(f"[red]✗ ROLE VIOLATION: {env.agent_role} tried '{req.action.get('tool')}' — reward zeroed[/red]")
         
         # Update global metrics
         _reward_curve.append({

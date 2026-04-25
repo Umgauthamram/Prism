@@ -13,36 +13,37 @@ def compute_reward(
     coord_efficiency: float,
     hallucination_rate: float,
     terminal: bool,
-    grader_score: float
+    grader_score: float,
+    running_count: int = 0,
+    prev_running_count: int = 0
 ) -> Tuple[float, Dict[str, float]]:
-    
-    # progress_delta (0.40)
-    progress_delta = (done_count - prev_done_count) / total_tasks if total_tasks > 0 else 0
-    
-    # atomic_health (0.20)
-    atomic_health = 1.0 - (orphaned_side_effects / total_side_effects) if total_side_effects > 0 else 1.0
-    
-    # coord_efficiency (0.20) - passed directly from injector
-    
-    # hallucination_penalty (0.10)
-    hallucination_penalty = 1.0 - hallucination_rate
-    
-    # terminal_bonus (0.10)
-    terminal_bonus = grader_score if terminal else 0.0
-    
-    # Formula
-    r = (0.40 * _clamp(progress_delta) + 
-         0.20 * _clamp(atomic_health) + 
-         0.20 * _clamp(coord_efficiency) + 
-         0.10 * _clamp(hallucination_penalty) + 
-         0.10 * _clamp(terminal_bonus))
-    
+
+    total_tasks = max(total_tasks, 1)
+    total_side_effects = max(total_side_effects, 1)
+
+    # Compute all components clamped
+    weighted_progress = (done_count + 0.5 * running_count)
+    prev_weighted     = (prev_done_count + 0.5 * prev_running_count)
+    raw_delta = (weighted_progress - prev_weighted) / total_tasks
+    progress_delta      = _clamp(raw_delta)
+    atomic_health       = _clamp(1.0 - (orphaned_side_effects / total_side_effects))
+    coord               = _clamp(coord_efficiency)
+    hallucination_pen   = _clamp(1.0 - hallucination_rate)
+    terminal_bonus      = _clamp(grader_score) if terminal else _clamp(0.0)
+
+    r = (0.40 * progress_delta +
+         0.20 * atomic_health +
+         0.20 * coord +
+         0.10 * hallucination_pen +
+         0.10 * terminal_bonus)
+
+    # breakdown uses the SAME clamped values the formula uses
     breakdown = {
-        "progress_delta": round(float(progress_delta), 4),
-        "atomic_health": round(float(atomic_health), 4),
-        "coord_efficiency": round(float(coord_efficiency), 4),
-        "hallucination_penalty": round(float(hallucination_penalty), 4),
-        "terminal_bonus": round(float(terminal_bonus), 4)
+        "progress_delta":        round(progress_delta, 4),
+        "atomic_health":         round(atomic_health, 4),
+        "coord_efficiency":      round(coord, 4),
+        "hallucination_penalty": round(hallucination_pen, 4),
+        "terminal_bonus":        round(terminal_bonus, 4),
     }
-    
+
     return round(float(r), 4), breakdown

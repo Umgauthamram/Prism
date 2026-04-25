@@ -66,13 +66,13 @@ The environment is live on Hugging Face Spaces. No installation required. Use th
 
 **Check Health**
 ```bash
-curl https://umgauthamram-prism-rl-env.hf.space/health
+curl http://localhost:8000/health
 ```
-*Expected Output:* `{"status": "ok", "timestamp": 1713945600.0}`
+*Expected Output:* `{"status": "ok", "project": "prism", "timestamp": 1713945600.0}`
 
 **Reset Episode**
 ```bash
-curl -X POST https://umgauthamram-prism-rl-env.hf.space/reset \
+curl -X POST http://localhost:8000/reset \
   -H "Content-Type: application/json" \
   -d '{"seed": 42, "options": {"task_domain": "debug", "agents": 2, "failure_rate": 0.0}}'
 ```
@@ -97,9 +97,9 @@ curl -X POST https://umgauthamram-prism-rl-env.hf.space/reset \
 
 **Take Step**
 ```bash
-curl -X POST https://umgauthamram-prism-rl-env.hf.space/step \
+curl -X POST http://localhost:8000/step \
   -H "Content-Type: application/json" \
-  -d '{"action": {"tool": "research_web", "args": {"q": "analyse bug report"}}}'
+  -d '{"action": {"tool": "research_web", "args": {"q": "analyse bug report"}}, "episode_id": "EP_ID"}'
 ```
 *Expected Output:*
 ```json
@@ -110,7 +110,7 @@ curl -X POST https://umgauthamram-prism-rl-env.hf.space/step \
   "truncated": false,
   "info": {
     "reward_breakdown": {
-      "progress_delta": 0.0,
+      "progress_delta": 0.1000,
       "atomic_health": 0.99,
       "coord_efficiency": 0.85,
       "hallucination_penalty": 0.99,
@@ -122,7 +122,7 @@ curl -X POST https://umgauthamram-prism-rl-env.hf.space/step \
 
 **Get Metrics**
 ```bash
-curl https://umgauthamram-prism-rl-env.hf.space/metrics
+curl http://localhost:8000/metrics
 ```
 *Expected Output:*
 ```json
@@ -342,6 +342,9 @@ A rising transfer score proves genuine cross-domain generalization, while a flat
 
 ### Formula
 ```python
+# Weighted Progress calculation
+progress = (done_count + 0.5 * running_count) / total_tasks
+
 r_t = 0.40 * progress_delta(t)
     + 0.20 * atomic_health(t)
     + 0.20 * coord_efficiency(t)
@@ -356,14 +359,14 @@ component = max(0.01, min(0.99, raw_value))
 
 | Component            | Weight | Signal Source                     | Nonzero When          |
 |----------------------|--------|-----------------------------------|-----------------------|
-| progress_delta       | 0.40   | Task graph completion fraction Δ  | Every step            |
+| progress_delta       | 0.40   | Weighted completion fraction Δ    | Node starts/finishes  |
 | atomic_health        | 0.20   | 1 - orphaned/total side effects   | Every step            |
-| coord_efficiency     | 0.20   | useful_tokens / total_tokens      | Every step            |
+| coord_efficiency     | 0.20   | useful / (total + overhead)       | Every step (30% floor)|
 | hallucination_penalty| 0.10   | 1 - critique flagged claim rate   | Every step            |
 | terminal_bonus       | 0.10   | Grader score on finish step       | Final step only       |
 
 ### Anti-gaming design
-The components are designed in natural tension. Maximizing `coord_efficiency` by simply doing nothing causes `progress_delta` to collapse. Maximizing `atomic_health` by avoiding side effects results in a zero `terminal_bonus`. No degenerate policy can maximize the composite reward; reliability must be balanced with task progress.
+The components are designed in natural tension. Maximizing `coord_efficiency` by simply doing nothing causes `progress_delta` to collapse. To prevent efficiency from crashing to zero during necessary planning, **overhead actions (checkpoint, rollback)** contribute 30% towards useful tokens. **Running nodes** contribute 50% of a completed node's value to the progress delta, encouraging agents to transition tasks into active states immediately. No degenerate policy can maximize the composite reward; reliability must be balanced with task progress.
 
 ---
 

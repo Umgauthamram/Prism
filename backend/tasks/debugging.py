@@ -31,5 +31,5 @@ def generate_task(seed: int) -> dict:
 def grade(agent_answer: str, task: dict) -> float:
     # Simulated grading: if answer contains 'range(len(items))', it's fixed
     if "range(len(items))" in agent_answer:
-        return 1.0
+        return 0.95
     return 0.3 # Partial credit for trying

@@ -59,12 +59,25 @@ def rollback(checkpoint_id: str, checkpoints: dict):
     return {"success": True, "data": data, "latency_ms": 200}
 
 def critique(target: str):
-    """Scores an output for hallucination."""
-    # Simulated heuristic
-    hallucination_rate = 0.05 if "verified" in target.lower() else 0.3
-    return {"success": True, "data": {"hallucination_rate": hallucination_rate, "confidence": 0.9}, "latency_ms": 400}
+    """Scores an output for hallucination with realistic variation."""
+    import random
+    base = 0.05 if "verified" in target.lower() else 0.15
+    # Add noise so hallucination varies every call
+    noise = random.uniform(-0.08, 0.20)
+    hallucination_rate = max(0.01, min(0.45, base + noise))
+    confidence = round(random.uniform(0.72, 0.96), 2)
+    return {
+        "success": True,
+        "data": {
+            "hallucination_rate": round(hallucination_rate, 3),
+            "confidence": confidence
+        },
+        "latency_ms": random.randint(180, 450)
+    }
+
 
 def finish(answer: str, grader_func, task_data: dict):
     """Terminates the episode and triggers grader."""
-    score = grader_func(answer, task_data)
+    raw_score = grader_func(answer, task_data)
+    score = max(0.01, min(0.99, float(raw_score)))  # clamp at source
     return {"success": True, "data": {"grader_score": score, "answer": answer}, "latency_ms": 50}

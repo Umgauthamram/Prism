@@ -15,11 +15,11 @@ def generate_task(seed: int) -> dict:
         "domain": "market_research"
     }
 
+
 def grade(agent_answer: str, task: dict) -> float:
-    # Heuristic rubric
-    score = 0.0
-    if len(agent_answer.split()) > 100: score += 0.25 # completeness
-    if "source:" in agent_answer.lower() or "http" in agent_answer.lower(): score += 0.25 # citations
-    if "confidence:" in agent_answer.lower(): score += 0.25 # calibration
-    if "competitor" in agent_answer.lower(): score += 0.25 # coverage
-    return score
+    score = 0.10  # base score — never returns raw 0.0
+    if len(agent_answer.split()) > 30: score += 0.20
+    if "source:" in agent_answer.lower() or "http" in agent_answer.lower(): score += 0.20
+    if "confidence:" in agent_answer.lower(): score += 0.20
+    if "competitor" in agent_answer.lower(): score += 0.20
+    return min(score, 0.90)  # never returns raw 1.0

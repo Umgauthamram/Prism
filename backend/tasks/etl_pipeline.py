@@ -10,10 +10,13 @@ def generate_task(seed: int) -> dict:
         "domain": "etl"
     }
 
+
 def grade(agent_answer: str, task: dict) -> float:
-    # Simulated execution check
-    if "join" in agent_answer.lower() and "group by" in agent_answer.lower():
-        return 1.0
-    if "select" in agent_answer.lower():
-        return 0.5
-    return 0.0
+    score = 0.10  # base score — never returns raw 0.0
+    if "join" in agent_answer.lower() or "transform" in agent_answer.lower():
+        score += 0.40
+    if "group" in agent_answer.lower():
+        score += 0.35
+    if "select" in agent_answer.lower() and score <= 0.15:
+        score += 0.35
+    return min(score, 0.90)  # never returns raw 1.0

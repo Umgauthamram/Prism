@@ -95,15 +95,48 @@ class PrismEnv:
         args = action.get("args", {})
         
         prev_done_count = sum(1 for v in self.task_graph.values() if v["status"] == "done")
+        prev_running_count = sum(1 for v in self.task_graph.values() if v["status"] == "running")
         
         if self.step_count >= 50:
-            return self._obs(), 0.0, True, False, {"error": "max_steps_exceeded"}
+            reward, breakdown = compute_reward(
+                done_count=sum(1 for v in self.task_graph.values() if v["status"] == "done"),
+                prev_done_count=sum(1 for v in self.task_graph.values() if v["status"] == "done"),
+                total_tasks=len(self.task_graph),
+                orphaned_side_effects=self.orphaned_side_effects,
+                total_side_effects=max(1, self.total_side_effects),
+                coord_efficiency=self.coord_injector.efficiency(),
+                hallucination_rate=0.0,
+                terminal=False,
+                grader_score=0.0,
+                running_count=0,
+                prev_running_count=0,
+            )
+            return self._obs(), reward, True, False, {
+                "error": "max_steps_exceeded",
+                "reward_breakdown": breakdown
+            }
 
         # Role Contract Check
         if tool not in ROLE_CONTRACTS[self.agent_role]:
             self.step_count += 1
             self.agent_role = ROLES[self.step_count % len(ROLES)]
-            return self._obs(), 0.0, False, False, {"error": "role_contract_violation"}
+            reward, breakdown = compute_reward(
+                done_count=prev_done_count,
+                prev_done_count=prev_done_count,
+                total_tasks=len(self.task_graph),
+                orphaned_side_effects=self.orphaned_side_effects,
+                total_side_effects=max(1, self.total_side_effects),
+                coord_efficiency=self.coord_injector.efficiency(),
+                hallucination_rate=0.0,
+                terminal=False,
+                grader_score=0.0,
+                running_count=prev_running_count,
+                prev_running_count=prev_running_count,
+            )
+            return self._obs(), reward, False, False, {
+                "error": "role_contract_violation",
+                "reward_breakdown": breakdown
+            }
 
         # Atomic Failure Injection
         self.injected_failure_flag = False
@@ -122,6 +155,8 @@ class PrismEnv:
                 hallucination_rate=0.0,
                 terminal=False,
                 grader_score=0.0,
+                running_count=prev_running_count,
+                prev_running_count=prev_running_count,
             )
             self.step_count += 1
             self.agent_role = ROLES[self.step_count % len(ROLES)]
@@ -135,11 +170,7 @@ class PrismEnv:
             }
             return self._obs(), reward, False, False, info
 
-        # Coordination tracking
-        if tool in ["research_web", "write_world"] or "content" in args:
-            content = args.get("content") or args.get("q") or str(args.get("update", ""))
-            if content:
-                self.coord_injector.record_token(str(content), args.get("useful", True))
+        # Coordination tracking is now done per-tool inside _execute_tool()
 
         # Tool execution
         result = self._execute_tool(tool, args)
@@ -147,6 +178,7 @@ class PrismEnv:
         
         # Reward components
         done_count = sum(1 for n in self.task_graph.values() if n["status"] == "done")
+        running_count = sum(1 for n in self.task_graph.values() if n["status"] == "running")
         
         grader_score = 0.0
         if tool == "finish":
@@ -161,7 +193,9 @@ class PrismEnv:
             coord_efficiency=self.coord_injector.efficiency(),
             hallucination_rate=result.get("data", {}).get("hallucination_rate", 0.0) if tool == "critique" else 0.0,
             terminal=(tool == "finish"),
-            grader_score=grader_score
+            grader_score=grader_score,
+            running_count=running_count,
+            prev_running_count=prev_running_count,
         )
         
         self.prev_done_count = done_count
@@ -201,60 +235,89 @@ class PrismEnv:
     def _obs(self) -> dict:
         return self.state()
 
+    def _first_ready_pending(self) -> str | None:
+        for task_id, node in self.task_graph.items():
+            if node["status"] != "pending":
+                continue
+            all_deps_done = all(
+                self.task_graph.get(d, {}).get("status") == "done"
+                for d in node["dependencies"]
+            )
+            if all_deps_done:
+                return task_id
+        return None
+
+    def _first_running(self) -> str | None:
+        for task_id, node in self.task_graph.items():
+            if node["status"] == "running":
+                return task_id
+        return None
+
     def _execute_tool(self, tool: str, args: dict) -> dict:
         if tool == "research_web":
+            self.total_side_effects += 1
             res = registry.research_web(args.get("q", ""))
-            # Advance task graph: pending → running for first eligible node
-            for k, v in self.task_graph.items():
-                if v["status"] == "pending":
-                    deps_met = all(
-                        self.task_graph[d]["status"] == "done"
-                        for d in v["dependencies"]
-                    )
-                    if deps_met:
-                        v["status"] = "running"
-                        break
+            self.coord_injector.record_token(args.get("q", ""), useful=True)
+            # Advance any existing running node to done first
+            running = self._first_running()
+            if running:
+                self.task_graph[running]["status"] = "done"
+            # Then set next pending node to running
+            ready = self._first_ready_pending()
+            if ready:
+                self.task_graph[ready]["status"] = "running"
+                res["data"] = f"researching: {args.get('q','')} | task {ready} now running"
             return res
         elif tool == "write_code":
             self.total_side_effects += 1
             res = registry.write_code(args.get("path", ""), args.get("body", ""), self.fs_dict)
-            # Advance task graph: running → done, or pending → done
-            advanced = False
-            for k, v in self.task_graph.items():
-                if v["status"] == "running":
-                    v["status"] = "done"
-                    advanced = True
-                    break
-            if not advanced:
-                for k, v in self.task_graph.items():
-                    if v["status"] == "pending":
-                        v["status"] = "done"
-                        break
+            self.coord_injector.record_token(
+                args.get("body", "") + args.get("path", ""), useful=True
+            )
+            running = self._first_running()
+            if running:
+                self.task_graph[running]["status"] = "done"
+            else:
+                ready = self._first_ready_pending()
+                if ready:
+                    self.task_graph[ready]["status"] = "done"
             return res
         elif tool == "run_tests":
             self.total_side_effects += 1
             res = registry.run_tests(args.get("path", ""), self.task_graph)
-            # Advance task graph: running → done, or pending → done
-            advanced = False
-            for k, v in self.task_graph.items():
-                if v["status"] == "running":
-                    v["status"] = "done"
-                    advanced = True
-                    break
-            if not advanced:
-                for k, v in self.task_graph.items():
-                    if v["status"] == "pending":
-                        v["status"] = "done"
-                        break
+            self.coord_injector.record_token(
+                f"running tests on {args.get('path', '')}", useful=True
+            )
+            running = self._first_running()
+            if running:
+                self.task_graph[running]["status"] = "done"
+                res["data"] = f"tests passed | task {running} completed"
+            else:
+                ready = self._first_ready_pending()
+                if ready:
+                    self.task_graph[ready]["status"] = "done"
             return res
         elif tool == "db_preflight":
             return registry.db_preflight(args.get("spec", {}), self.preflights)
         elif tool == "db_commit":
             self.total_side_effects += 1
-            return registry.db_commit(args.get("preflight_id", ""), self.preflights)
+            res = registry.db_commit(args.get("preflight_id", ""), self.preflights)
+            running = self._first_running()
+            if running:
+                self.task_graph[running]["status"] = "done"
+            else:
+                ready = self._first_ready_pending()
+                if ready:
+                    self.task_graph[ready]["status"] = "done"
+            return res
         elif tool == "checkpoint":
+            self.total_side_effects += 1
             res = registry.checkpoint(self.episode_id, self.step_count, self.world_model, self.task_graph, self.checkpoints)
             self.checkpoint_id = res["data"]["checkpoint_id"]
+            # Checkpointing world model is coordination overhead
+            self.coord_injector.record_token(
+                f"checkpoint at step {self.step_count}", useful=False
+            )
             return res
         elif tool == "rollback":
             res = registry.rollback(args.get("checkpoint_id", ""), self.checkpoints)
@@ -263,6 +326,11 @@ class PrismEnv:
                 self.task_graph = res["data"]["task_graph"]
             return res
         elif tool == "critique":
+            self.total_side_effects += 1
+            # Critique reads world model — partly useful, partly overhead
+            self.coord_injector.record_token(
+                args.get("target", ""), useful=False
+            )
             return registry.critique(args.get("target", ""))
         elif tool == "finish":
             # Flip all remaining "running" nodes to "done" before grading
@@ -278,6 +346,9 @@ class PrismEnv:
             # Logic tools that update state
             if "update" in args:
                 self.world_model.update(args["update"])
+                self.coord_injector.record_token(
+                    str(args["update"]), useful=True
+                )
             if "task_done" in args and args["task_done"] in self.task_graph:
                 node = self.task_graph[args["task_done"]]
                 # STRICT DEPENDENCY CHECK
