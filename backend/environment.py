@@ -221,7 +221,8 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
             terminal=(tool == "finish"),
             grader_score=grader_score,
             prev_running_count=prev_running_count,
-            steps_since_checkpoint=self.steps_since_checkpoint
+            steps_since_checkpoint=self.steps_since_checkpoint,
+            rubric_dims=result.get("data", {}).get("dimensions", {}) if result else {}
         )
         
         # Log to Rich Table
