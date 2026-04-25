@@ -285,17 +285,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
+# Serve Next.js Static Export
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
 if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    # Mount everything else as static files (handles /_next, /favicon.ico, etc.)
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
     
     @app.get("/")
     async def serve_frontend():
-        return FileResponse(os.path.join(static_dir, "index.html"))
-    
-    @app.get("/{full_path:path}")
-    async def serve_frontend_routes(full_path: str):
-        file_path = os.path.join(static_dir, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
         return FileResponse(os.path.join(static_dir, "index.html"))
