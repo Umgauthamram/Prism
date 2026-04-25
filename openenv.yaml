@@ -1,0 +1,18 @@
+spec_version: 1
+name: prism-rl-env
+version: "0.1.0"
+description: >
+  OpenEnv-native RL environment for training reliable multi-agent LLM
+  systems. Targets three documented failure modes: coordination tax,
+  non-atomic failure, and absent cross-domain transfer. Themes covered:
+  Multi-Agent Interactions, Long-Horizon Planning, Self-Improving Systems.
+type: space
+runtime: fastapi
+app: backend.server:app
+port: 7860
+tags:
+  - multi-agent
+  - reinforcement-learning
+  - long-horizon-planning
+  - self-improvement
+  - openenv

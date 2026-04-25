@@ -101,17 +101,15 @@ export interface HistoryItem {
 }
 
 const BASE = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_ENV_URL || (window.location.port === '3000' ? 'http://localhost:8000' : ''))
+  ? (process.env.NEXT_PUBLIC_ENV_URL || 'http://localhost:8000')
   : 'http://localhost:8000';
 
 const API_BASE = BASE;
 
 export async function fetchHealth() {
-  const res = await fetch(`${API_BASE}/health?t=${Date.now()}`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE}/health`);
   if (!res.ok) throw new Error("Backend offline");
-  const data = await res.json();
-  if (data.status !== "ok" || data.project !== "prism") throw new Error("Invalid backend");
-  return data;
+  return res.json();
 }
 
 export async function fetchMetrics(): Promise<Metrics> {

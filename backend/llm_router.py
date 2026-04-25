@@ -2,6 +2,7 @@ import time
 import json
 import httpx
 import asyncio
+import os
 from typing import Optional, Dict, List, Any
 
 # Supported Providers and Models
@@ -22,7 +23,11 @@ PROVIDERS = {
 
 # Global in-memory state
 _episode_configs: Dict[str, Dict[str, str]] = {} # eid -> {provider, model}
-_api_keys: Dict[str, str] = {}
+_api_keys: Dict[str, str] = {
+    "groq": os.getenv("GROQ_API_KEY", ""),
+    "gemini": os.getenv("GOOGLE_API_KEY", ""),
+    "openai": os.getenv("OPENAI_API_KEY", "")
+}
 _model_results: Dict[str, List[Dict[str, Any]]] = {}
 
 def set_model_config(provider: str, model: str, api_key: str, episode_id: Optional[str] = None) -> dict:
@@ -34,11 +39,12 @@ def set_model_config(provider: str, model: str, api_key: str, episode_id: Option
     if api_key and api_key != "SAVED":
         _api_keys[provider] = api_key
     
+    key = f"{provider}/{model}"
     if episode_id:
         _episode_configs[episode_id] = {"provider": provider, "model": model}
-    
-    key = f"{provider}/{model}"
-    if key not in _model_results:
+        # Clear previous data for this model since a new tournament run is starting
+        _model_results[key] = []
+    elif key not in _model_results:
         _model_results[key] = []
         
     return {"success": True, "provider": provider, "model": model}
@@ -180,15 +186,22 @@ What is the best next action for the {role} to maximize total reward and complet
             "Researcher": {"tool": "research_web", "args": {"q": "task context"}},
             "Coder": {"tool": "run_tests", "args": {}},
             "Critic": {"tool": "critique", "args": {}},
-            "Synthesizer": {"tool": "finish", "args": {}}
+            "Synthesizer": {"tool": "checkpoint", "args": {}}
         }
         action = fallbacks.get(role, {"tool": "checkpoint", "args": {}})
 
+    config = _episode_configs.get(observation.get("episode_id"), {})
+    model_used = config.get("model", "unknown")
+    provider_used = config.get("provider", "unknown")
+
+    # Removed premature record_model_result call. 
+    # environment.py already records the true result at the end of the step.
+    
     return {
         "tool": action.get("tool"),
         "args": action.get("args", {}),
-        "model_used": config.get("model"),
-        "provider_used": config.get("provider"),
+        "model_used": model_used,
+        "provider_used": provider_used,
         "latency_ms": latency
     }
 

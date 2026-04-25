@@ -35,7 +35,7 @@ async def run_contestant(client: httpx.AsyncClient, config: dict):
         "options": {"task_domain": "debug", "agents": 2, "failure_rate": 0.0}
     })
     obs = res.json()
-    episode_id = obs["episode_id"]
+    episode_id = obs["observation"]["episode_id"]
     
     # 2. Configure Model for this episode
     await client.post(f"{ENV_BASE_URL}/models/config", json={
@@ -72,7 +72,7 @@ async def run_contestant(client: httpx.AsyncClient, config: dict):
 
         reward = data["reward"]
         total_reward += reward
-        done = data["terminated"]
+        done = data["done"]
         steps += 1
         
         # Live print status

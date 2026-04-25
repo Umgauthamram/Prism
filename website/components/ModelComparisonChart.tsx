@@ -14,6 +14,7 @@ import {
 import { fetchModelComparison, RewardPoint, resetEpisode, setModelConfig, step } from "@/lib/api";
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444", "#ec4899"];
+const MAX_STEPS = 25;
 
 export default function ModelComparisonChart() {
   const [data, setData] = useState<Record<string, RewardPoint[]>>({});
@@ -22,62 +23,137 @@ export default function ModelComparisonChart() {
   const [statuses, setStatuses] = useState<Record<string, string>>({});
 
   const startTournament = async () => {
-    // 1. Get all models that the user has configured/selected
-    const activeDomain = (document.querySelector('button.bg-black.text-white shadow-\\[4px_4px_0px_rgba\\(0\\,0\\,0\\,1\\)\\]')?.textContent || "debug").toLowerCase().trim();
-    
     setTournamentRunning(true);
+    setStatuses({});
+    // Clear old chart data so the new run starts fresh
+    setData({});
+
     try {
+        // Read system parameters from the DifficultyControls UI
+        // Look for the active button specifically among the domain options (debug, research, etl)
+        const domainButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('button'));
+        const domainBtn = domainButtons.find(btn => {
+          const text = btn.textContent?.toLowerCase().trim() || "";
+          const isActive = btn.className.includes("bg-black") && btn.className.includes("text-white");
+          return isActive && (text === "debug" || text === "research" || text === "etl");
+        });
+
+        const activeDomain = domainBtn?.textContent?.toLowerCase().trim() || "debug";
+        // Map display label back to API value
+        const domainMap: Record<string, string> = { research: "market_research", debug: "debug", etl: "etl" };
+        const domain = domainMap[activeDomain] || activeDomain;
+
+        // Read agent count from the UI
+        const agentBtn = document.querySelectorAll<HTMLButtonElement>(
+          '[class*="border-black"][class*="bg-black"][class*="text-white"][class*="shadow"]'
+        );
+        let agents = 4;
+        agentBtn.forEach(btn => {
+          const txt = btn.textContent || "";
+          if (txt.includes("Agents")) {
+            const n = parseInt(txt);
+            if (!isNaN(n)) agents = n;
+          }
+        });
+
+        // Read seed from the input
+        const seedInput = document.querySelector<HTMLInputElement>('input[type="number"]');
+        const seed = seedInput ? parseInt(seedInput.value) || 42 : 42;
+
         // Fetch current active models from backend comparison state
         const comp = await fetchModelComparison();
         const modelsToRun = Object.keys(comp.models);
 
         if (modelsToRun.length === 0) {
-            // Fallback to defaults if none active
             modelsToRun.push("groq/llama-3.3-70b-versatile", "gemini/gemini-2.0-flash");
         }
 
-        await Promise.all(modelsToRun.map(m => {
+        // Phase 1: Reset an episode for each model and store their episode IDs
+        const activeEpisodes: { provider: string; model: string; eid: string; done: boolean; rewards: RewardPoint[] }[] = [];
+        for (const m of modelsToRun) {
             const [provider, model] = m.includes("/") ? m.split("/") : ["groq", m];
-            return runTournamentEpisode(provider, model, activeDomain);
-        }));
+            setStatuses(prev => ({ ...prev, [`${provider}/${model}`]: "initializing" }));
+            
+            const obs = await resetEpisode({ task_domain: domain as any, agents: agents as any, failure_rate: 0 as any, seed });
+            const eid = obs.observation?.episode_id || obs.episode_id;
+            await setModelConfig(provider, model, "SAVED", eid);
+            
+            activeEpisodes.push({ provider, model, eid, done: false, rewards: [] });
+        }
+
+        // Brief pause so the UI shows the initialized state
+        await new Promise(r => setTimeout(r, 500));
+
+        // Phase 2: Round-Robin lockstep — each model takes one step before advancing
+        // ALWAYS run exactly MAX_STEPS for every model, never exit early
+        let currentStep = 1;
+        while (currentStep <= MAX_STEPS) {
+            for (const ep of activeEpisodes) {
+                try {
+                    const stepResult = await step("checkpoint", {}, ep.eid);
+                    const reward = stepResult.reward ?? 0;
+
+                    // Track reward locally so we don't depend on the backend's global state
+                    ep.rewards.push({ step: currentStep, total: reward, breakdown: stepResult.info?.reward_breakdown || {} });
+
+                    // Update the chart data in real-time from local tracking
+                    setData(prev => ({
+                        ...prev,
+                        [`${ep.provider}/${ep.model}`]: [...ep.rewards]
+                    }));
+                    
+                    setStatuses(prev => ({ 
+                        ...prev, 
+                        [`${ep.provider}/${ep.model}`]: `step ${currentStep}/${MAX_STEPS}` 
+                    }));
+                } catch (stepErr) {
+                    ep.rewards.push({ 
+                        step: currentStep, 
+                        total: -0.1, 
+                        breakdown: { progress_delta: 0, atomic_health: 0, coord_efficiency: 0, hallucination_penalty: 0, terminal_bonus: 0 } 
+                    });
+                    setData(prev => ({
+                        ...prev,
+                        [`${ep.provider}/${ep.model}`]: [...ep.rewards]
+                    }));
+                }
+            }
+
+            currentStep++;
+            
+            await new Promise(r => setTimeout(r, 800));
+        }
+
+        // Mark all models as finished
+        for (const ep of activeEpisodes) {
+            setStatuses(prev => ({ ...prev, [`${ep.provider}/${ep.model}`]: "finished" }));
+        }
+
+    } catch (err) {
+        console.error("Tournament failed", err);
     } finally {
         setTournamentRunning(false);
     }
   };
 
-  const runTournamentEpisode = async (provider: string, model: string, domain: string) => {
-    try {
-        setStatuses(prev => ({ ...prev, [`${provider}/${model}`]: "running" }));
-        const obs = await resetEpisode({ task_domain: domain as any, agents: 4, failure_rate: 0, seed: 42 });
-        const eid = obs.episode_id;
-
-        await setModelConfig(provider, model, "SAVED", eid);
-
-        let done = false;
-        let currentStep = 0;
-        while (!done && currentStep < 30) {
-            const stepResult = await step("checkpoint", {}, eid);
-            done = stepResult.terminated;
-            currentStep++;
-            await new Promise(r => setTimeout(r, 1000));
-        }
-        setStatuses(prev => ({ ...prev, [`${provider}/${model}`]: "finished" }));
-    } catch (err) {
-        console.error(`Tournament episode for ${model} failed`, err);
-    }
-  };
-
   useEffect(() => {
+    // Only poll when tournament is NOT running (avoids overwriting local tracking)
+    if (tournamentRunning) return;
+
     const poll = async () => {
-      const result = await fetchModelComparison();
-      setData(result.models);
+      try {
+        const result = await fetchModelComparison();
+        if (result.models && Object.keys(result.models).length > 0) {
+          setData(prev => ({ ...prev, ...result.models }));
+        }
+      } catch { /* ignore poll errors */ }
       setLoading(false);
     };
 
     poll();
-    const interval = setInterval(poll, 2000);
+    const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tournamentRunning]);
 
   const modelKeys = Object.keys(data);
 
@@ -89,7 +165,10 @@ export default function ModelComparisonChart() {
     );
   }
 
-  const maxSteps = Math.max(...modelKeys.map(k => data[k].length || 0), 0);
+  const maxSteps = modelKeys.length > 0
+    ? Math.min(Math.max(...modelKeys.map(k => (data[k] || []).length)), MAX_STEPS)
+    : 0;
+
   const chartData = Array.from({ length: maxSteps }, (_, i) => {
     const point: any = { step: i + 1 };
     modelKeys.forEach(key => {
@@ -124,9 +203,9 @@ export default function ModelComparisonChart() {
         <div className="mb-6 flex flex-wrap gap-2">
             {Object.entries(statuses).map(([key, status]) => (
                 <div key={key} className={`border-2 px-3 py-1 text-[8px] font-black uppercase tracking-widest flex items-center gap-2 ${
-                    status === "running" ? "bg-black text-white border-black" : "bg-white text-black border-black"
+                    status === "running" || status.startsWith("step") ? "bg-black text-white border-black" : "bg-white text-black border-black"
                 }`}>
-                    <span className={`h-1 w-1 rounded-full ${status === "running" ? "bg-white animate-pulse" : "bg-black"}`} />
+                    <span className={`h-1 w-1 rounded-full ${status === "running" || status.startsWith("step") ? "bg-white animate-pulse" : "bg-black"}`} />
                     {key.split("/").pop()} : {status}
                 </div>
             ))}
@@ -152,6 +231,7 @@ export default function ModelComparisonChart() {
                 fontWeight="bold" 
                 tickLine={true} 
                 axisLine={true}
+                interval={0}
                 label={{ value: "Tournament Step", position: "insideBottom", offset: -5, fontSize: 10, fontWeight: 900}}
               />
               <YAxis 

@@ -23,7 +23,7 @@ tags:
 
 **Meta × PyTorch × Hugging Face · OpenEnv AI Hackathon 2026**
 
-![OpenEnv Compatible](https://img.shields.io/badge/OpenEnv-Compatible-green)
+[![OpenEnv Compatible](https://img.shields.io/badge/OpenEnv-Compatible-green)](https://github.com/meta-pytorch/OpenEnv)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue)
 ![Docker Ready](https://img.shields.io/badge/Docker-Ready-blue)
 ![HF Space Live](https://img.shields.io/badge/HF%20Space-Live-purple?link=https://huggingface.co/spaces/umgauthamram/prism-rl-env)
@@ -153,7 +153,8 @@ docker compose up --build
 # Terminal 1 — Backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn backend.server:app --reload --port 7860
+# Ensure openenv is installed (included in requirements.txt)
+uvicorn backend.server:app --reload --port 8000
 
 # Terminal 2 — Dashboard
 cd website
@@ -185,16 +186,28 @@ prism/
 │   │   ├── atomic_failure.py — Injector 2: mid-task crashes
 │   │   └── domain_shift.py   — Injector 3: cross-domain transfer
 │   ├── tasks/
-│   │   ├── debugging.py      — Task domain 1 + pytest grader
+│   │   ├── debugging.py      — Task domain 1: 4 seed-varied codebases + multi-factor grader
 │   │   ├── market_research.py — Task domain 2 + rubric grader
-│   │   └── etl_pipeline.py   — Task domain 3 + schema grader
+│   │   └── etl_pipeline.py   — Task domain 3 + schema-aware grader
 │   ├── roles/
 │   │   └── contracts.py   — Role-action contract enforcement
 │   └── tools/
 │       └── registry.py    — All 9 tool implementations
 ├── training/
-│   ├── grpo_train.py      — Reference GRPO training loop
-│   └── evaluate.py        — Held-out transfer evaluation
+│   ├── grpo_train.py      — 200-episode curriculum training (3-stage failure injection)
+│   ├── evaluate.py        — Cross-domain evaluation harness
+│   ├── generate_curves.py — Before/after reward evidence generator
+│   ├── tournament.py      — Multi-model head-to-head tournament
+│   └── colab_train.ipynb  — Colab notebook for judges
+├── training_output/       — Committed training artifacts
+│   ├── before_after_curves.png
+│   ├── transfer_scores.png
+│   ├── reward_curve.jsonl
+│   └── transfer_curve.jsonl
+├── openenv.yaml           — OpenEnv manifest
+├── models.py              — Typed PrismAction/Observation/State
+├── client.py              — PrismEnvClient (async + sync)
+├── pyproject.toml         — pip-installable package
 ├── website/               — Next.js TypeScript live dashboard
 ├── run_demo.py            — Terminal demo script
 ├── Dockerfile             — Single-image build (backend + frontend)
@@ -445,19 +458,26 @@ A dedicated tournament runner allows for automated, concurrent head-to-head eval
 
 ### GRPO with TRL
 ```python
-from envs.prism import PrismAction, PrismEnv
+from envs.prism import PrismEnv, PrismAction
 
-async with PrismEnv(base_url="http://localhost:7860") as env:
-    obs = await env.reset(seed=42, options={
-        "task_domain": "debug",
-        "agents": 2,
-        "failure_rate": 0.0
-    })
-    while not done:
-        action = policy.act(obs)
-        result = await env.step(PrismAction(tool=action.tool, args=action.args))
-        reward = result.reward
-        done = result.observation.done
+# Initialize the OpenEnv-compliant client
+env = PrismEnv(base_url="http://localhost:8000")
+
+# Reset with difficulty options
+obs = env.reset(seed=42, options={
+    "task_domain": "debug",
+    "agents": 2,
+    "failure_rate": 0.2
+})
+
+done = False
+while not done:
+    # Use role-compliant actions
+    action = {"tool": "research_web", "args": {"q": "analyse logs"}}
+    obs = env.step(action)
+    
+    print(f"Reward: {obs.reward:.4f}")
+    done = obs.done
 ```
 
 ### Reference training script
@@ -532,3 +552,34 @@ python run_demo.py
 - **Primary:** Multi-Agent Interactions (Coordination Injector)
 - **Secondary:** Long-Horizon Planning (Atomic Failure Injector)
 - **Tertiary:** Self-Improving Systems (Domain Shift + Curriculum)
+
+---
+
+## Section 16: Results
+
+### Before/After Policy Comparison
+![Before After](training_output/before_after_curves.png)
+*Naive policy (no checkpoint, generic answers) vs Good policy (domain-aware, role-compliant). The shaped reward model produces ~2× improvement for reliable behavior — proving environment learnability without requiring RL.*
+
+### Cross-Domain Transfer
+![Transfer Scores](training_output/transfer_scores.png)
+*Same policy evaluated across all 3 domains. Debug scores highest due to exact-match grading; market research and ETL show partial transfer with domain-tuned graders.*
+
+### Model Tournament
+```
+llama-3.3-70b-versatile : 11.6328
+gemini-2.0-flash        : 11.0889
+```
+*Same environment, two different LLMs. Proves model agnosticism.*
+
+---
+
+## Section 17: Links
+
+| Resource               | URL                                                                                      |
+|------------------------|------------------------------------------------------------------------------------------|
+| **HF Space (Live)**    | [huggingface.co/spaces/gauthamram/prism](https://huggingface.co/spaces/gauthamram/prism) |
+| **Colab Notebook**     | [training/colab_train.ipynb](training/colab_train.ipynb)                                 |
+| **Evidence Generator** | [training/generate_curves.py](training/generate_curves.py)                               |
+| **Tournament Script**  | [training/tournament.py](training/tournament.py)                                         |
+| **Evaluation Harness** | [training/evaluate.py](training/evaluate.py)                                             |

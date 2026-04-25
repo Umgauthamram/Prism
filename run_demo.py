@@ -15,7 +15,7 @@ def main():
     console.print(Panel(
         "[bold cyan]prism RL Environment Demo[/bold cyan]\n"
         "OpenEnv AI Hackathon 2026",
-        title="[bold]prism 🌈[/bold]",
+        title="[bold]prism[/bold]",
         border_style="cyan"
     ))
 
@@ -43,9 +43,9 @@ def main():
     if reset_res.status_code != 200:
         console.print(f"[red]Backend not reachable at {base_url}[/red]")
         return
-    ep1_id = reset_res.json()["episode_id"]
+    ep1_id = reset_res.json()["observation"]["episode_id"]
 
-    console.print("\n[bold cyan]━━ Episode 1 / 2 — Primary Debug Cycle ━━[/bold cyan]\n")
+    console.print("\n[bold cyan]-- Episode 1 / 2 - Primary Debug Cycle --[/bold cyan]\n")
     ep1_rewards = []
     for i, action in enumerate(EPISODE_1):
         result = requests.post(f"{base_url}/step", json={
@@ -59,7 +59,7 @@ def main():
         data = result.json()
         reward = data.get("reward", 0.0)
         ep1_rewards.append(reward)
-        breakdown = data.get("info", {}).get("reward_breakdown", {})
+        breakdown = data.get("observation", {}).get("info", {}).get("reward_breakdown", {})
 
         agent_role = data.get("observation", {}).get("agent_role", "Unknown")
         table = Table(show_header=True, header_style="bold magenta", title=f"Step {i+1} | Role: {agent_role}")
@@ -84,9 +84,9 @@ def main():
     if reset_res2.status_code != 200:
         console.print(f"[red]Backend not reachable at {base_url}[/red]")
         return
-    ep2_id = reset_res2.json()["episode_id"]
+    ep2_id = reset_res2.json()["observation"]["episode_id"]
 
-    console.print("\n[bold cyan]━━ Episode 2 / 2 — Verification Cycle ━━[/bold cyan]\n")
+    console.print("\n[bold cyan]-- Episode 2 / 2 - Verification Cycle --[/bold cyan]\n")
     ep2_rewards = []
     for i, action in enumerate(EPISODE_2):
         result = requests.post(f"{base_url}/step", json={
@@ -100,7 +100,7 @@ def main():
         data = result.json()
         reward = data.get("reward", 0.0)
         ep2_rewards.append(reward)
-        breakdown = data.get("info", {}).get("reward_breakdown", {})
+        breakdown = data.get("observation", {}).get("info", {}).get("reward_breakdown", {})
 
         agent_role = data.get("observation", {}).get("agent_role", "Unknown")
         table = Table(show_header=True, header_style="bold magenta", title=f"Step {i+6} | Role: {agent_role}")
@@ -139,7 +139,7 @@ def main():
         f"Episodes completed:         2\n\n"
         f"[cyan]Dashboard: {base_url.replace('8000', '3000')}[/cyan]\n"
         f"[cyan]HF Space:  https://gauthamram-prism.hf.space[/cyan]",
-        title="[bold green]✓ Demo Complete[/bold green]",
+        title="[bold green]Demo Complete[/bold green]",
         border_style="green"
     ))
 

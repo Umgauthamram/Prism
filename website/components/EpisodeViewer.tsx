@@ -133,7 +133,7 @@ export default function EpisodeViewer() {
       <div className="space-y-4">
         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-black/40">Task Execution Graph</h4>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {Object.entries(state.task_graph).map(([id, node]) => (
+          {Object.entries(state.task_graph || {}).map(([id, node]) => (
             <div key={id} className={`flex items-center justify-between border-2 p-4 transition-all hover:translate-x-1 ${statusColors[node.status]}`}>
               <span className="font-mono text-[11px] font-bold italic">{id}</span>
               <span className="text-[10px] font-black uppercase tracking-tighter">{node.status}</span>
@@ -148,7 +148,7 @@ export default function EpisodeViewer() {
         <div className="max-h-40 overflow-y-auto border-2 border-black bg-white p-1 custom-scrollbar">
           <table className="w-full text-left">
             <tbody className="divide-y divide-black/10">
-              {Object.entries(state.world_model).map(([key, value]) => (
+              {Object.entries(state.world_model || {}).map(([key, value]) => (
                 <tr key={key} className="group transition-colors hover:bg-black/[0.02]">
                   <td className="px-3 py-2.5 font-mono text-[10px] text-black group-hover:text-black">{key}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-[10px] text-black font-bold">{JSON.stringify(value)}</td>

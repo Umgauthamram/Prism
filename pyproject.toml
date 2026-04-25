@@ -1,0 +1,33 @@
+[project]
+name = "prism-rl-env"
+version = "0.1.0"
+description = "OpenEnv RL environment for training reliable multi-agent LLM systems"
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core>=0.2.0",
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.7.0",
+    "httpx>=0.27.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+training = [
+    "torch>=2.2.0",
+    "transformers>=4.40.0",
+    "trl>=0.9.0",
+    "wandb",
+    "requests",
+]
+dashboard = [
+    "aiofiles>=23.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*", "training*"]

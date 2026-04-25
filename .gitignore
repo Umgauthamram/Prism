@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .venv/
 .env
+.env.example
 dist/
 build/
 *.egg-info/
@@ -20,3 +21,7 @@ website/.env.local
 training_output/
 .gemini/
 .antigravity/
+
+# OpenEnv outputs (keep folder structure, ignore content)
+outputs/logs/*.log
+outputs/evals/*.json

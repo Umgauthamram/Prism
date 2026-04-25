@@ -1,16 +1,26 @@
 import uuid
 import random
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional, List
+from openenv.core import Environment
 from .roles.contracts import ROLES, ROLE_CONTRACTS
 from .tools import registry
 from .injectors.atomic_failure import AtomicFailureInjector
 from .injectors.coordination import CoordinationInjector
 from .reward import compute_reward
 from .tasks import debugging, market_research, etl_pipeline
-from . import llm_router
+from . import llm_router, state
+from envs.prism import PrismObservation, PrismAction
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+import wandb
+import time
 
-class PrismEnv:
+console = Console()
+
+class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
     def __init__(self):
+        super().__init__()
         self.episode_id = None
         self.task_domain = None
         self.agents = None
@@ -37,7 +47,9 @@ class PrismEnv:
         self.total_side_effects = 0
         self.prev_done_count = 0
 
-    def reset(self, seed: int, options: dict) -> dict:
+    def reset(self, seed: int = 42, options: dict = None) -> PrismObservation:
+        if options is None:
+            options = {}
         random.seed(seed)
         self.episode_id = str(uuid.uuid4())
         self.task_domain = options.get("task_domain", "debug")
@@ -57,6 +69,9 @@ class PrismEnv:
         self.total_side_effects = 0
         self.prev_done_count = 0
         
+        # Don't wipe the global reward curve — other episodes may be running
+        # state._total_episodes is incremented in state.update_metrics when terminated=True
+        
         # Domain specific task gen
         if self.task_domain == "debug":
             self.task_data = debugging.generate_task(seed)
@@ -71,9 +86,29 @@ class PrismEnv:
         cp_res = registry.checkpoint(self.episode_id, 0, self.world_model, self.task_graph, self.checkpoints)
         self.checkpoint_id = cp_res["data"]["checkpoint_id"]
         
+        console.print(Panel(
+            f"[bold cyan]EPISODE RESET[/bold cyan]\n"
+            f"Domain: [yellow]{self.task_domain}[/yellow]  "
+            f"Agents: [green]{self.agents}[/green]  "
+            f"Failure Rate: [red]{self.failure_rate}[/red]  "
+            f"Seed: [blue]{seed}[/blue]\n"
+            f"Episode ID: [dim]{self.episode_id[:8]}...[/dim]",
+            title="[bold]prism RL Environment[/bold]",
+            border_style="cyan"
+        ))
+        
         return self._obs()
 
-    async def step(self, action: dict) -> Tuple[dict, float, bool, bool, dict]:
+    def step(self, action: PrismAction | dict, timeout_s: Optional[float] = None, **kwargs: Any) -> PrismObservation:
+        """Sync step is not implemented, use step_async."""
+        raise NotImplementedError("Use step_async")
+
+    async def step_async(self, action: PrismAction | dict, timeout_s: Optional[float] = None, **kwargs: Any) -> PrismObservation:
+        if isinstance(action, PrismAction):
+            action_dict = action.model_dump()
+        else:
+            action_dict = action
+
         model_used = None
         provider_used = None
         llm_latency_ms = None
@@ -82,22 +117,30 @@ class PrismEnv:
         active_config = llm_router.get_model_config(self.episode_id)
         if active_config["active_provider"] and active_config["active_model"]:
             llm_action = await llm_router.generate_agent_action(
-                observation=self._obs(),
+                observation=self._obs_dict(),
                 role=self.agent_role,
                 allowed_tools=ROLE_CONTRACTS[self.agent_role]
             )
-            action = {"tool": llm_action["tool"], "args": llm_action["args"]}
+            action_dict = {"tool": llm_action["tool"], "args": llm_action["args"]}
             model_used = llm_action["model_used"]
             provider_used = llm_action["provider_used"]
             llm_latency_ms = llm_action["latency_ms"]
-
-        tool = action.get("tool")
-        args = action.get("args", {})
+            
+            # Use the AI's tool for the rest of the logic
+            tool = action_dict.get("tool")
+            args = action_dict.get("args", {})
+        else:
+            tool = action_dict.get("tool")
+            args = action_dict.get("args", {})
         
         prev_done_count = sum(1 for v in self.task_graph.values() if v["status"] == "done")
         prev_running_count = sum(1 for v in self.task_graph.values() if v["status"] == "running")
         
-        if self.step_count >= 50:
+        reward = 0.0
+        breakdown = {}
+        info = {}
+
+        if self.step_count >= 25:
             reward, breakdown = compute_reward(
                 done_count=sum(1 for v in self.task_graph.values() if v["status"] == "done"),
                 prev_done_count=sum(1 for v in self.task_graph.values() if v["status"] == "done"),
@@ -111,32 +154,22 @@ class PrismEnv:
                 running_count=0,
                 prev_running_count=0,
             )
-            return self._obs(), reward, True, False, {
-                "error": "max_steps_exceeded",
-                "reward_breakdown": breakdown
-            }
+            self.terminated = True
+            return self._obs(reward=reward, done=True, info={"reward_breakdown": breakdown})
 
-        # Role Contract Check
+        # Role Contract Check (with fallback to keep episode alive)
         if tool not in ROLE_CONTRACTS[self.agent_role]:
-            self.step_count += 1
-            self.agent_role = ROLES[self.step_count % len(ROLES)]
-            reward, breakdown = compute_reward(
-                done_count=prev_done_count,
-                prev_done_count=prev_done_count,
-                total_tasks=len(self.task_graph),
-                orphaned_side_effects=self.orphaned_side_effects,
-                total_side_effects=max(1, self.total_side_effects),
-                coord_efficiency=self.coord_injector.efficiency(),
-                hallucination_rate=0.0,
-                terminal=False,
-                grader_score=0.0,
-                running_count=prev_running_count,
-                prev_running_count=prev_running_count,
-            )
-            return self._obs(), reward, False, False, {
-                "error": "role_contract_violation",
-                "reward_breakdown": breakdown
-            }
+            # Automatically swap to an allowed tool for this role if AI/UI makes a mistake
+            old_tool = tool
+            tool = ROLE_CONTRACTS[self.agent_role][0]
+            args = {}
+            console.print(f"[yellow]⚠ {self.agent_role} tried '{old_tool}' (forbidden) - Swapped to '{tool}'[/yellow]")
+        
+        # Log which model is acting if applicable
+        eid_prefix = f"[{self.episode_id[:4]}]" if self.episode_id else ""
+        model_prefix = f"({model_used[:8]})" if model_used else ""
+        if self.step_count % 5 == 0:
+            console.print(f"[dim]{eid_prefix}{model_prefix} Step {self.step_count} | Role: {self.agent_role}[/dim]")
 
         # Atomic Failure Injection
         self.injected_failure_flag = False
@@ -160,17 +193,8 @@ class PrismEnv:
             )
             self.step_count += 1
             self.agent_role = ROLES[self.step_count % len(ROLES)]
-            info = {
-                "reward_breakdown": breakdown,
-                "episode_id": self.episode_id,
-                "step": self.step_count,
-                "injected_failure": True,
-                "model_used": model_used,
-                "llm_latency_ms": llm_latency_ms,
-            }
-            return self._obs(), reward, False, False, info
-
-        # Coordination tracking is now done per-tool inside _execute_tool()
+            console.print("[bold red]! INJECTED FAILURE ACTIVE - Atomic Failure Injector triggered[/bold red]")
+            return self._obs(reward=reward, done=False, info={"reward_breakdown": breakdown})
 
         # Tool execution
         result = self._execute_tool(tool, args)
@@ -198,24 +222,45 @@ class PrismEnv:
             prev_running_count=prev_running_count,
         )
         
-        self.prev_done_count = done_count
-        self.step_count += 1
-        self.agent_role = ROLES[self.step_count % len(ROLES)]
+        # Log to Rich Table
+        table = Table(show_header=True, header_style="bold magenta", title=f"Step {self.step_count} | Role: {self.agent_role}")
+        table.add_column("Component", style="cyan", width=22)
+        table.add_column("Value", justify="right", style="green")
+        table.add_column("Weight", justify="right", style="dim")
+        table.add_row("Progress Delta", f"{breakdown.get('progress_delta', 0):.4f}", "×0.40")
+        table.add_row("Atomic Health", f"{breakdown.get('atomic_health', 0):.4f}", "×0.20")
+        table.add_row("Coord Efficiency", f"{breakdown.get('coord_efficiency', 0):.4f}", "×0.20")
+        table.add_row("Hallucination Pen.", f"{breakdown.get('hallucination_penalty', 0):.4f}", "×0.10")
+        table.add_row("Terminal Bonus", f"{breakdown.get('terminal_bonus', 0):.4f}", "×0.10")
+        table.add_section()
+        table.add_row("[bold]TOTAL REWARD[/bold]", f"[bold yellow]{reward:.4f}[/bold yellow]", "")
+        console.print(table)
+
+        # Update global metrics
+        state.update_metrics(self.step_count, reward, breakdown, self.terminated, self.task_domain, self.episode_id)
         
         # Record model result if active
         llm_router.record_model_result(self.episode_id, self.step_count, reward, breakdown)
-        
-        self.terminated = (tool == "finish" and result.get("success", True)) or (self.step_count >= 50)
-        info = {
-            "reward_breakdown": breakdown, 
-            "episode_id": self.episode_id,
-            "model_used": model_used,
-            "provider_used": provider_used,
-            "llm_latency_ms": llm_latency_ms
-        }
-        
-        return self._obs(), reward, self.terminated, False, info
 
+        self.prev_done_count = done_count
+        self.step_count += 1
+        self.agent_role = ROLES[self.step_count % len(ROLES)]
+        self.terminated = (self.step_count >= 25)
+        
+        # W&B Logging
+        if self.terminated and active_config["active_model"]:
+            try:
+                wandb.log({
+                    f"eval/{active_config['active_model']}/reward": reward,
+                    f"eval/{active_config['active_model']}/steps": self.step_count,
+                    "episode_id": self.episode_id
+                })
+            except:
+                pass
+
+        return self._obs(reward=reward, done=self.terminated, info={"reward_breakdown": breakdown})
+
+    @property
     def state(self) -> dict:
         return {
             "task_graph": self.task_graph,
@@ -232,8 +277,16 @@ class PrismEnv:
             "terminated": self.terminated
         }
 
-    def _obs(self) -> dict:
-        return self.state()
+    def _obs(self, reward: float = 0.0, done: bool = False, info: dict = None) -> PrismObservation:
+        return PrismObservation(
+            **self.state,
+            reward=reward,
+            done=done,
+            info=info or {}
+        )
+
+    def _obs_dict(self, reward: float = 0.0, done: bool = False) -> dict:
+        return self._obs(reward, done).model_dump()
 
     def _first_ready_pending(self) -> str | None:
         for task_id, node in self.task_graph.items():
@@ -273,7 +326,13 @@ class PrismEnv:
             self.coord_injector.record_token(
                 args.get("body", "") + args.get("path", ""), useful=True
             )
-            # Code tasks stay 'running' until run_tests or manual assign
+            running = self._first_running()
+            if running:
+                self.task_graph[running]["status"] = "done"
+            else:
+                ready = self._first_ready_pending()
+                if ready:
+                    self.task_graph[ready]["status"] = "done"
             return res
         elif tool == "run_tests":
             self.total_side_effects += 1
@@ -326,23 +385,15 @@ class PrismEnv:
             )
             return registry.critique(args.get("target", ""))
         elif tool == "finish":
-            # PREVENT PREMATURE FINISH: Only allow if all tasks are done
-            pending = [k for k, v in self.task_graph.items() if v["status"] != "done"]
-            if pending:
-                return {
-                    "success": False, 
-                    "error": f"Cannot finish yet. The following tasks are still pending or running: {', '.join(pending)}. Continue working!", 
-                    "latency_ms": 10
-                }
-
-            # Flip all remaining "running" nodes to "done" before grading
-            for k, v in self.task_graph.items():
-                if v["status"] == "running":
-                    v["status"] = "done"
+            # DO NOT mark all remaining nodes as done automatically.
+            # If they call finish early, they will miss out on progress delta rewards.
             g_func = None
-            if self.task_domain == "debug": g_func = debugging.grade
-            elif self.task_domain == "market_research": g_func = market_research.grade
-            else: g_func = etl_pipeline.grade
+            if self.task_domain == "debug":
+                g_func = debugging.grade
+            elif self.task_domain == "market_research":
+                g_func = market_research.grade
+            else:
+                g_func = etl_pipeline.grade
             return registry.finish(args.get("answer", ""), g_func, self.task_data)
         elif tool in ["decompose", "assign", "replan", "write_world", "merge", "flag_hallucination", "request_replan", "flag_gap"]:
             # Logic tools that update state

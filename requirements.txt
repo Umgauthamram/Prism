@@ -10,3 +10,4 @@ torch
 transformers
 trl
 wandb
+openenv-core @ git+https://github.com/meta-pytorch/openenv.git
