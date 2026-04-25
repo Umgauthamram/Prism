@@ -8,6 +8,7 @@ from .injectors.atomic_failure import AtomicFailureInjector
 from .injectors.coordination import CoordinationInjector
 from .reward import compute_reward
 from .tasks import debugging, market_research, etl_pipeline
+from .rubric import DebuggingRubric, MarketResearchRubric
 from . import llm_router, state
 from envs.prism import PrismObservation, PrismAction
 from rich.console import Console
@@ -393,16 +394,29 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
             )
             return registry.critique(args.get("target", ""))
         elif tool == "finish":
-            # DO NOT mark all remaining nodes as done automatically.
-            # If they call finish early, they will miss out on progress delta rewards.
-            g_func = None
+            # Use multi-dimensional Rubric
+            rubric = None
             if self.task_domain == "debug":
-                g_func = debugging.grade
+                rubric = DebuggingRubric("DebugEval")
             elif self.task_domain == "market_research":
-                g_func = market_research.grade
+                rubric = MarketResearchRubric("ResearchEval")
             else:
-                g_func = etl_pipeline.grade
-            return registry.finish(args.get("answer", ""), g_func, self.task_data)
+                # Fallback for ETL
+                rubric = DebuggingRubric("ETLEval")
+                
+            res_obj = rubric.evaluate(args.get("answer", ""), self.task_data)
+            score = res_obj.score
+            
+            return {
+                "success": True, 
+                "data": {
+                    "grader_score": score, 
+                    "reasoning": res_obj.reasoning,
+                    "dimensions": res_obj.dimensions,
+                    "answer": args.get("answer", "")
+                }, 
+                "latency_ms": 50
+            }
         elif tool in ["decompose", "assign", "replan", "write_world", "merge", "flag_hallucination", "request_replan", "flag_gap"]:
             # Logic tools that update state
             if "update" in args:
