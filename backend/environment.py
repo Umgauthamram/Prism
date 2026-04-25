@@ -205,7 +205,7 @@ class PrismEnv:
         # Record model result if active
         llm_router.record_model_result(self.episode_id, self.step_count, reward, breakdown)
         
-        self.terminated = (tool == "finish") or (self.step_count >= 50)
+        self.terminated = (tool == "finish" and result.get("success", True)) or (self.step_count >= 50)
         info = {
             "reward_breakdown": breakdown, 
             "episode_id": self.episode_id,
@@ -258,15 +258,14 @@ class PrismEnv:
             self.total_side_effects += 1
             res = registry.research_web(args.get("q", ""))
             self.coord_injector.record_token(args.get("q", ""), useful=True)
-            # Advance any existing running node to done first
+            
+            # Start the first pending task if nothing is running
             running = self._first_running()
-            if running:
-                self.task_graph[running]["status"] = "done"
-            # Then set next pending node to running
-            ready = self._first_ready_pending()
-            if ready:
-                self.task_graph[ready]["status"] = "running"
-                res["data"] = f"researching: {args.get('q','')} | task {ready} now running"
+            if not running:
+                ready = self._first_ready_pending()
+                if ready:
+                    self.task_graph[ready]["status"] = "running"
+                    res["data"] = f"researching: {args.get('q','')} | task {ready} now running"
             return res
         elif tool == "write_code":
             self.total_side_effects += 1
@@ -274,13 +273,7 @@ class PrismEnv:
             self.coord_injector.record_token(
                 args.get("body", "") + args.get("path", ""), useful=True
             )
-            running = self._first_running()
-            if running:
-                self.task_graph[running]["status"] = "done"
-            else:
-                ready = self._first_ready_pending()
-                if ready:
-                    self.task_graph[ready]["status"] = "done"
+            # Code tasks stay 'running' until run_tests or manual assign
             return res
         elif tool == "run_tests":
             self.total_side_effects += 1
@@ -333,6 +326,15 @@ class PrismEnv:
             )
             return registry.critique(args.get("target", ""))
         elif tool == "finish":
+            # PREVENT PREMATURE FINISH: Only allow if all tasks are done
+            pending = [k for k, v in self.task_graph.items() if v["status"] != "done"]
+            if pending:
+                return {
+                    "success": False, 
+                    "error": f"Cannot finish yet. The following tasks are still pending or running: {', '.join(pending)}. Continue working!", 
+                    "latency_ms": 10
+                }
+
             # Flip all remaining "running" nodes to "done" before grading
             for k, v in self.task_graph.items():
                 if v["status"] == "running":

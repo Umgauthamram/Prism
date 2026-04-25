@@ -11,17 +11,26 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { fetchMetrics, Metrics, RewardPoint } from "@/lib/api";
+import { fetchMetrics, fetchModelsConfig, Metrics, RewardPoint } from "@/lib/api";
 
 export default function RewardCurveChart() {
   const [data, setData] = useState<RewardPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const [activeModel, setActiveModel] = useState<{model: string, provider: string} | null>(null);
 
   useEffect(() => {
     const poll = async () => {
       try {
         const metrics = await fetchMetrics();
         setData(metrics.reward_curve);
+        
+        // Fetch active model info to identify whose data this is
+        const config = await fetchModelsConfig();
+        if (config.active_model) {
+          setActiveModel({ model: config.active_model, provider: config.active_provider || "" });
+        }
+
         setError(null);
       } catch (err) {
         setError("Backend offline");
@@ -63,9 +72,16 @@ export default function RewardCurveChart() {
     <div className="glass-panel p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-black uppercase tracking-widest text-black">
-            Reward Trajectory
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-sm font-black uppercase tracking-widest text-black">
+              Reward Trajectory
+            </h3>
+            {activeModel && (
+              <span className="bg-black text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-wider">
+                {activeModel.provider} / {activeModel.model}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-black/40">Real-time performance across 5 reward vectors</p>
         </div>
       </div>
@@ -73,8 +89,24 @@ export default function RewardCurveChart() {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#00000015" vertical={false} />
-            <XAxis dataKey="step" stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
-            <YAxis domain={[0, 1]} stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
+            <XAxis 
+              dataKey="step" 
+              stroke="#000000" 
+              fontSize={11} 
+              fontWeight="bold" 
+              tickLine={true} 
+              axisLine={true}
+              label={{ value: "Step Number", position: "insideBottom", offset: -5, fontSize: 10, fontWeight: 900}}
+            />
+            <YAxis 
+              domain={[0, 1]} 
+              stroke="#000000" 
+              fontSize={11} 
+              fontWeight="bold" 
+              tickLine={true} 
+              axisLine={true}
+              label={{ value: "Reward Score", angle: -90, position: "insideLeft", offset: 15, fontSize: 10, fontWeight: 900 }}
+            />
             <Tooltip
               contentStyle={{ 
                 backgroundColor: "#ffffff", 

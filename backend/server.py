@@ -90,7 +90,7 @@ def health():
 
 @app.post("/reset")
 def reset(req: ResetRequest):
-    global _active_episode_id, _total_episodes
+    global _active_episode_id, _total_episodes, _reward_curve
     env = PrismEnv()
     
     obs = env.reset(req.seed, req.options)
@@ -99,6 +99,7 @@ def reset(req: ResetRequest):
     _episodes[eid] = env
     _active_episode_id = eid
     _total_episodes += 1
+    _reward_curve = [] # Clear the curve for the new model run
     
     console.print(Panel(
         f"[bold cyan]EPISODE RESET[/bold cyan]\n"

@@ -31,7 +31,8 @@ def set_model_config(provider: str, model: str, api_key: str, episode_id: Option
     if model not in PROVIDERS[provider]["models"]:
         return {"success": False, "message": f"Model {model} not supported for {provider}"}
     
-    _api_keys[provider] = api_key
+    if api_key and api_key != "SAVED":
+        _api_keys[provider] = api_key
     
     if episode_id:
         _episode_configs[episode_id] = {"provider": provider, "model": model}
@@ -128,20 +129,28 @@ async def generate_agent_action(observation: dict, role: str, allowed_tools: dic
     task_graph = observation.get('task_graph', {})
     pending_tasks = [k for k, v in task_graph.items() if v["status"] == "pending"]
     
-    system_prompt = f"""You are a {role} agent in a Prism RL environment.
-OBJECTIVE: Complete all tasks in the Task Graph as efficiently as possible.
+    role_warning = ""
+    if role == "Synthesizer" and pending_tasks:
+        role_warning = "\n⚠️ WARNING: You are the Synthesizer. DO NOT use the 'finish' tool yet. There are still pending tasks. Use 'merge' or 'flag_gap' instead to keep the episode alive."
 
-AVAILABLE TOOLS: {json.dumps(allowed_tools, indent=2)}
+    system_prompt = f"""You are a high-performance {role} agent in the Prism RL Environment.
+OBJECTIVE: You must successfully complete EVERY task in the Task Graph. {role_warning}
 
-CRITICAL GUIDELINES:
-1. DEPENDENCIES: You cannot finish a task until its dependencies are met. Look at the 'Task Graph' carefully.
-2. PROGRESSION: To mark a task as DONE, you MUST use a logic tool (like 'replan', 'assign', 'decompose') and include "task_done": "task_id" in your arguments.
-3. TECHNICAL: If your role is Coder, you must 'write_code' then 'run_tests'. 'run_tests' marks itself done if successful.
-4. COMPLETION: You MUST complete ALL PENDING TASKS before using the 'finish' tool. Using 'finish' with pending tasks will result in a heavy penalty.
-5. FORMAT: Respond ONLY with valid JSON: {{"tool": "...", "args": {{...}}}}
+TASK GRAPH RULES:
+1. SEQUENTIAL PROGRESS: Look at the 'Task Graph' below. You MUST complete tasks in order of their dependencies.
+2. COMPLETION PROTOCOL: To finish a task, you must use a tool that either explicitly marks it done (like 'run_tests') or use a logic tool (like 'replan', 'assign', 'decompose') and include "task_done": "task_id" in the 'args' dictionary.
+3. ROLE BOUNDARIES: You are currently the {role}. Only use tools allowed for your role. If you need to switch, the environment will rotate your role in the next step.
+4. NO PREMATURE EXIT: Do NOT use the 'finish' tool until ALL tasks in the graph have a status of "done". Using 'finish' early is a CRITICAL FAILURE and results in zero terminal bonus.
+5. STRATEGY: If a task is 'pending' and its dependencies are 'done', that is your target. If you are a Coder, use 'write_code' then 'run_tests'. If you are a Planner, use 'assign' or 'checkpoint'.
 
-Current Domain: {observation.get('task_domain', 'unknown')}
-Pending Tasks: {", ".join(pending_tasks) if pending_tasks else "NONE - USE FINISH TOOL NOW"}"""
+AVAILABLE TOOLS FOR {role.upper()}:
+{json.dumps(allowed_tools, indent=2)}
+
+FORMAT: You must respond ONLY with a single JSON object: {{"tool": "...", "args": {{...}}}}
+
+CURRENT STATE:
+- Domain: {observation.get('task_domain', 'unknown')}
+- Pending Tasks: {", ".join(pending_tasks) if pending_tasks else "NONE - ALL TASKS COMPLETE. USE 'finish' TOOL NOW."}"""
 
     user_prompt = f"""STATE UPDATE:
 - Task Graph Status: {json.dumps(task_graph, indent=2)}

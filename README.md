@@ -419,9 +419,19 @@ Difficulty is parameterized at reset time, allowing for seamless curriculum lear
 
 ---
 
-## Section 11: Multi-Model Evaluation
+## Section 11: Multi-Model Evaluation & Tournament
 
-The dashboard supports live model switching for evaluation. Configure Groq, Gemini, or OpenAI models from the Model Selector panel. All models are evaluated under identical seeded conditions. The "Model Agnosticism Proof" chart overlays their reward curves, providing direct performance comparisons.
+The dashboard supports live model switching for evaluation. Configure Groq, Gemini, or OpenAI models from the Model Selector panel. All models are evaluated under identical seeded conditions. The **Model Comparison** chart (Section 11a) overlays their reward curves, providing direct performance comparisons in a "Tournament of Champions."
+
+### 11a — Tournament Mode
+A dedicated tournament runner allows for automated, concurrent head-to-head evaluation of different LLM architectures. This reveals the "reliability gap" between fast, small models (Flash/Lite) and large, long-horizon models (Llama-3.3-70B / GPT-4o).
+
+| Feature                | Description                                                                 |
+|------------------------|-----------------------------------------------------------------------------|
+| **Head-to-Head**       | Simultaneous execution of multiple model trajectories.                     |
+| **Persistence Guard**  | Built-in 'Synthesizer Stop Signal' prevents agents from ending tasks early. |
+| **Real-time Badges**   | Live chart identification shows exactly which model is producing each line. |
+| **Clean Comparison**   | Automatic data isolation ensures trajectories never mix or duplicate.       |
 
 | Provider | Models Available                                              |
 |----------|---------------------------------------------------------------|
@@ -472,6 +482,18 @@ This script saves `reward_curve.jsonl` (per-step logs) and `transfer_curve.jsonl
 - [x] **Role contracts:** Enforced at the environment boundary.
 - [x] **Curriculum learning:** Parameterized difficulty at reset.
 - [x] **Transfer measurement:** Built-in logging every 50 episodes.
+- [x] **Tournament Runner:** Multi-model concurrent benchmarking.
+
+---
+
+## Section 14: Brutalist Glassmorphism — UI/UX
+
+Prism features a high-performance, premium dashboard built with **Next.js** and **Recharts**. The design system follows "Brutalist Glassmorphism" principles:
+- **Bold Typography:** Heavy, uppercase Inter/Outfit for technical authority.
+- **Glassmorphic Panels:** Frosted-glass container effects with crisp, high-contrast borders.
+- **Interactive Triage:** Real-time task execution graph with role-transition animations.
+- **Rich Visualization:** 5-component reward vectors rendered as dynamic, color-coded trajectories.
+- **Live Badging:** Real-time identification of active LLM providers (Groq, Gemini, OpenAI).
 
 ---
 

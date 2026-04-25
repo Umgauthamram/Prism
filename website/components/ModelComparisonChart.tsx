@@ -23,8 +23,7 @@ export default function ModelComparisonChart() {
 
   const startTournament = async () => {
     // 1. Get all models that the user has configured/selected
-    const activeDomainElement = document.querySelector('.bg-emerald-500\\/20');
-    const activeDomain = activeDomainElement?.textContent?.toLowerCase().trim() || "debug";
+    const activeDomain = (document.querySelector('button.bg-black.text-white shadow-\\[4px_4px_0px_rgba\\(0\\,0\\,0\\,1\\)\\]')?.textContent || "debug").toLowerCase().trim();
     
     setTournamentRunning(true);
     try {
@@ -57,8 +56,8 @@ export default function ModelComparisonChart() {
         let done = false;
         let currentStep = 0;
         while (!done && currentStep < 30) {
-            const data = await step("checkpoint", {}, eid);
-            done = data.terminated;
+            const stepResult = await step("checkpoint", {}, eid);
+            done = stepResult.terminated;
             currentStep++;
             await new Promise(r => setTimeout(r, 1000));
         }
@@ -146,8 +145,24 @@ export default function ModelComparisonChart() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#00000015" vertical={false} />
-              <XAxis dataKey="step" stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
-              <YAxis domain={[0, 1]} stroke="#000000" fontSize={11} fontWeight="bold" tickLine={true} axisLine={true} />
+              <XAxis 
+                dataKey="step" 
+                stroke="#000000" 
+                fontSize={11} 
+                fontWeight="bold" 
+                tickLine={true} 
+                axisLine={true}
+                label={{ value: "Tournament Step", position: "insideBottom", offset: -5, fontSize: 10, fontWeight: 900}}
+              />
+              <YAxis 
+                domain={[0, 1]} 
+                stroke="#000000" 
+                fontSize={11} 
+                fontWeight="bold" 
+                tickLine={true} 
+                axisLine={true}
+                label={{ value: "Total Reward", angle: -90, position: "insideLeft", offset: 15, fontSize: 10, fontWeight: 900 }}
+              />
               <Tooltip
                 contentStyle={{ 
                   backgroundColor: "#ffffff", 
