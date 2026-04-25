@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
+COPY envs/ ./envs/
 COPY training/ ./training/
 COPY run_demo.py .
 COPY --from=frontend-builder /app/frontend/out ./static
