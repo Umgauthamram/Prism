@@ -100,11 +100,25 @@ export interface HistoryItem {
   timestamp: number;
 }
 
-const BASE = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_ENV_URL || 'http://localhost:8000')
-  : 'http://localhost:8000';
+const getBaseUrl = () => {
+  if (typeof window === 'undefined') return 'http://localhost:8000';
+  
+  // 1. Use explicit environment variable if provided
+  if (process.env.NEXT_PUBLIC_ENV_URL && process.env.NEXT_PUBLIC_ENV_URL !== "") {
+    return process.env.NEXT_PUBLIC_ENV_URL;
+  }
+  
+  // 2. Local development fallback: if frontend is on 3000, backend is likely on 8000
+  if (window.location.hostname === 'localhost' && window.location.port === '3000') {
+    return 'http://localhost:8000';
+  }
+  
+  // 3. Production/HF Spaces: use relative path to handle subpaths correctly
+  // This ensures that /health becomes /spaces/user/repo/health on HF
+  return window.location.pathname.replace(/\/$/, '');
+};
 
-const API_BASE = BASE;
+const API_BASE = getBaseUrl();
 
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
