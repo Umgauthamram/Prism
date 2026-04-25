@@ -23,6 +23,9 @@ tags:
 
 **Meta × PyTorch × Hugging Face · OpenEnv AI Hackathon 2026**
 
+> [!IMPORTANT]
+> **Research Philosophy**: Prism is not a collection of static scenarios; it is a **Scenario Generator System**. We define the **Scenario Space** through three fundamental **Failure Primitives**. This allows a model to learn from a near-infinite variety of failure patterns rather than memorizing a few toy cases.
+
 [![OpenEnv Compatible](https://img.shields.io/badge/OpenEnv-Compatible-green)](https://github.com/meta-pytorch/OpenEnv)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue)
 ![Docker Ready](https://img.shields.io/badge/Docker-Ready-blue)
@@ -34,7 +37,13 @@ tags:
 
 Reliability in multi-agent LLM systems is often bottlenecked by a "coordination tax" that scales poorly beyond a few concurrent agents. In production, three specific failure modes dominate: coordination overhead leading to redundant work, non-atomic failures that leave the system in an inconsistent state after a mid-task crash, and the "narrow specialist" trap where an agent's learned reliability improvements in one domain fail to transfer to another. These are not merely theoretical challenges; they are the documented blockers preventing the deployment of long-horizon autonomous systems in enterprise environments.
 
-**prism** reframes these failures as measurable, trainable signals. The environment places agents in a sandboxed workspace assigned professional tasks like software debugging, market research, or ETL pipeline construction. Three difficulty injectors—Coordination Stress, Atomic Failure, and Domain Shift—deliberately manufacture these failure modes during episodes. Every injection produces a dense, scored reward signal that directly penalizes unreliable behavior. The environment is packaged as a single Docker image conforming to the OpenEnv Gymnasium-style HTTP API, making it drop-in compatible with state-of-the-art training frameworks like GRPO, PPO, TRL, SkyRL, and Oumi.
+**prism** reframes these failures as measurable, trainable signals. Instead of hardcoding 100 scenarios, we designed the environment around **Failure Primitives**. Each primitive is parameterized, allowing it to generate a vast family of scenarios programmatically:
+
+1.  **Coordination Primitive**: Scales with number of agents, task overlap, and communication noise.
+2.  **Atomic Failure Primitive**: Generates non-deterministic crashes at different points of the transaction lifecycle (pre-write, mid-write, partial commit).
+3.  **Transfer Primitive**: Dynamically shifts tasks between disparate professional domains (Software → Research → ETL).
+
+This "Scenario Space" approach ensures that reliability is a genuine learned capability, not just a result of memorization.
 
 What makes **prism** novel is its focus on the reliability gap itself. Instead of just tracking task success, it uses a 5-component shaped reward model to incentivize transaction-like discipline and information-efficient communication. The environment supports model-agnostic evaluation via a live Next.js dashboard, allowing developers to switch between Groq (Llama), Gemini, and OpenAI models in real-time and compare their reward curves side-by-side.
 
@@ -194,12 +203,15 @@ prism/
 │   └── tools/
 │       └── registry.py    — All 9 tool implementations
 ├── training/
+│   ├── benchmark.py       — 100-problem behavioral pattern analysis & plots
 │   ├── grpo_train.py      — 200-episode curriculum training (3-stage failure injection)
 │   ├── evaluate.py        — Cross-domain evaluation harness
 │   ├── generate_curves.py — Before/after reward evidence generator
 │   ├── tournament.py      — Multi-model head-to-head tournament
 │   └── colab_train.ipynb  — Colab notebook for judges
 ├── training_output/       — Committed training artifacts
+│   ├── plots/             — Generated benchmark analysis plots
+│   ├── benchmark_results.jsonl
 │   ├── before_after_curves.png
 │   ├── transfer_scores.png
 │   ├── reward_curve.jsonl
@@ -317,37 +329,32 @@ prism/
 
 ---
 
-## Section 6: The Three Difficulty Injectors
+## Section 6: The Scenario Generator (Failure Primitives)
 
-### Injector 1 — Coordination Stress
-**Targets:** Multi-Agent Interactions theme
+Our goal is not to enumerate scenarios, but to **define the space of failures**. Prism moves from static cases to a **parameterized scenario space**.
 
-Spawns N agents (2, 4, or 8) operating in parallel. Each agent sees only role-relevant observations. The environment tracks every token of inter-agent communication and penalizes excessive or redundant information passing.
+### Primitive 1 — Coordination Stress
+**Generates:** Infinite multi-agent coordination patterns.
+- **2 agents**: Simple handoffs, low noise.
+- **4 agents**: Partial duplication, shared world-model contention.
+- **8+ agents**: High-entropy communication, coordination chaos.
 
 ```python
+# The Scenario Space: CoordinationFailure(agents=N, overlap=X)
 coord_efficiency = useful_work_tokens / (useful_work_tokens + coordination_tokens)
 ```
-Agents that effectively utilize the shared `world_model` without redundant search queries score near 1.0. Agents that duplicate requests or produce high-noise communication score near 0.0.
 
-### Injector 2 — Atomic Failure
-**Targets:** Long-Horizon Planning theme
+### Primitive 2 — Atomic Failure
+**Generates:** Non-deterministic system state corruptions.
+- **p=0.0**: Stable environment baseline.
+- **p=0.2**: Intermittent "partial writes" (simulated disk/db failures).
+- **p=0.5**: Maximum stress; requires transaction-like discipline (rollback/preflight).
 
-With probability p ∈ {0, 0.2, 0.5}, the environment kills a tool call mid-execution, simulating partial DB writes or corrupted file states.
-
-```python
-atomic_health = 1.0 - (orphaned_side_effects / total_side_effects)
-```
-Agents that use `db_preflight` and `checkpoint` before committing changes can use `rollback` to return to a clean state. The reward gradient directly pushes agents toward transaction-like discipline.
-
-### Injector 3 — Domain Shift
-**Targets:** Self-Improving Systems theme
-
-Tasks are drawn from 3 distinct domains with held-out validation sets. A transfer score is logged every 50 episodes to measure generalization.
-
-```python
-transfer_score = held_out_same_domain_perf - first_seen_other_domain_perf
-```
-A rising transfer score proves genuine cross-domain generalization, while a flat score indicates narrow specialization. This is visible in real-time on the dashboard's transfer chart.
+### Primitive 3 — Domain Shift (Transfer)
+**Generates:** Cross-domain reliability signals.
+- **debug → research**: Logic reasoning to information gathering.
+- **research → etl**: Information gathering to schema-aware construction.
+- **etl → debug**: Construction to root-cause analysis.
 
 ---
 
@@ -571,6 +578,22 @@ llama-3.3-70b-versatile : 11.6328
 gemini-2.0-flash        : 11.0889
 ```
 *Same environment, two different LLMs. Proves model agnosticism.*
+
+### Benchmark Results
+![Phase Analysis](training_output/plots/benchmark_analysis.png)
+*100-problem benchmark across 7 training phases. Panel A shows
+reward by phase. Panel B shows reward variance. Panel C shows
+component patterns. Panel D shows cross-domain transfer.*
+
+![Failure Rate Effect](training_output/plots/failure_rate_effect.png)
+*Atomic Failure Injector (Injector 2): higher failure rate
+systematically reduces episode reward, proving the injector
+creates a real trainable signal — not just noise.*
+
+![Agent Count Effect](training_output/plots/agent_count_effect.png)
+*Coordination Injector (Injector 1): coordination efficiency
+drops as agent count rises from 2→4→8, proving multi-agent
+coordination is measurably harder at scale.*
 
 ---
 

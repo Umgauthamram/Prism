@@ -15,7 +15,8 @@ def compute_reward(
     terminal: bool,
     grader_score: float,
     running_count: int = 0,
-    prev_running_count: int = 0
+    prev_running_count: int = 0,
+    steps_since_checkpoint: int = 0
 ) -> Tuple[float, Dict[str, float]]:
 
     total_tasks = max(total_tasks, 1)
@@ -26,7 +27,12 @@ def compute_reward(
     prev_weighted     = (prev_done_count + 0.5 * prev_running_count)
     raw_delta = (weighted_progress - prev_weighted) / total_tasks
     progress_delta      = _clamp(raw_delta)
-    atomic_health       = _clamp(1.0 - (orphaned_side_effects / total_side_effects))
+    
+    # NEW: Atomic health now reflects 'entropy risk'
+    # It decays by 2% per step since the last checkpoint, encouraging proactive state management
+    risk_factor = min(0.20, steps_since_checkpoint * 0.02)
+    atomic_health       = _clamp(1.0 - (orphaned_side_effects / total_side_effects) - risk_factor)
+    
     coord               = _clamp(coord_efficiency)
     hallucination_pen   = _clamp(1.0 - hallucination_rate)
     terminal_bonus      = _clamp(grader_score) if terminal else _clamp(0.0)

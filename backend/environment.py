@@ -46,6 +46,7 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
         self.orphaned_side_effects = 0
         self.total_side_effects = 0
         self.prev_done_count = 0
+        self.steps_since_checkpoint = 0
 
     def reset(self, seed: int = 42, options: dict = None) -> PrismObservation:
         if options is None:
@@ -151,8 +152,8 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
                 hallucination_rate=0.0,
                 terminal=False,
                 grader_score=0.0,
-                running_count=0,
                 prev_running_count=0,
+                steps_since_checkpoint=self.steps_since_checkpoint
             )
             self.terminated = True
             return self._obs(reward=reward, done=True, info={"reward_breakdown": breakdown})
@@ -188,8 +189,8 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
                 hallucination_rate=0.0,
                 terminal=False,
                 grader_score=0.0,
-                running_count=prev_running_count,
                 prev_running_count=prev_running_count,
+                steps_since_checkpoint=self.steps_since_checkpoint
             )
             self.step_count += 1
             self.agent_role = ROLES[self.step_count % len(ROLES)]
@@ -218,8 +219,8 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
             hallucination_rate=result.get("data", {}).get("hallucination_rate", 0.0) if tool == "critique" else 0.0,
             terminal=(tool == "finish"),
             grader_score=grader_score,
-            running_count=running_count,
             prev_running_count=prev_running_count,
+            steps_since_checkpoint=self.steps_since_checkpoint
         )
         
         # Log to Rich Table
@@ -236,6 +237,10 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
         table.add_row("[bold]TOTAL REWARD[/bold]", f"[bold yellow]{reward:.4f}[/bold yellow]", "")
         console.print(table)
 
+        # Update termination status
+        if tool == "finish" or self.step_count >= 24:
+            self.terminated = True
+
         # Update global metrics
         state.update_metrics(self.step_count, reward, breakdown, self.terminated, self.task_domain, self.episode_id)
         
@@ -245,7 +250,8 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
         self.prev_done_count = done_count
         self.step_count += 1
         self.agent_role = ROLES[self.step_count % len(ROLES)]
-        self.terminated = (self.step_count >= 25)
+
+        self.steps_since_checkpoint += 1
         
         # W&B Logging
         if self.terminated and active_config["active_model"]:
@@ -370,12 +376,14 @@ class PrismEnv(Environment[PrismAction, PrismObservation, dict]):
             self.coord_injector.record_token(
                 f"checkpoint at step {self.step_count}", useful=False
             )
+            self.steps_since_checkpoint = 0
             return res
         elif tool == "rollback":
             res = registry.rollback(args.get("checkpoint_id", ""), self.checkpoints)
             if res["success"]:
                 self.world_model = res["data"]["world_model"]
                 self.task_graph = res["data"]["task_graph"]
+                self.steps_since_checkpoint = 0
             return res
         elif tool == "critique":
             self.total_side_effects += 1

@@ -25,3 +25,8 @@ training_output/
 # OpenEnv outputs (keep folder structure, ignore content)
 outputs/logs/*.log
 outputs/evals/*.json
+
+# Binary and Large files
+*.pdf
+wandb/
+.ipynb_checkpoints/

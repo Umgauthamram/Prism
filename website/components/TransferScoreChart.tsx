@@ -39,7 +39,7 @@ export default function TransferScoreChart() {
   if (!metrics || metrics.transfer_scores.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center border-2 border-black bg-white text-black/20 font-black uppercase text-xs">
-        Transfer scores logged every 50 episodes…
+        Transfer scores logged after each episode…
       </div>
     );
   }

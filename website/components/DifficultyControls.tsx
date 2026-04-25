@@ -100,7 +100,10 @@ export default function DifficultyControls() {
           <input
             type="number"
             value={seed}
-            onChange={(e) => setSeed(parseInt(e.target.value))}
+            onChange={(e) => {
+              const val = parseInt(e.target.value);
+              setSeed(isNaN(val) ? 0 : val);
+            }}
             className="w-full border-2 border-black bg-white p-3 font-mono text-xs text-black transition-all focus:outline-none focus:ring-2 focus:ring-black/5"
           />
         </div>
