@@ -16,9 +16,12 @@ class PrismRubric:
         self.name = name
         self.dimensions = ["Accuracy", "Reliability", "Efficiency"]
 
+    def _clamp(self, x: float) -> float:
+        return max(0.001, min(0.999, x))
+
     def evaluate(self, answer: str, task_data: dict, history: List[dict] = None) -> RubricResult:
         # Default implementation
-        return RubricResult(score=0.1, reasoning="Base evaluation", dimensions={"Accuracy": 0.1, "Reliability": 0.1, "Efficiency": 0.1})
+        return RubricResult(score=self._clamp(0.1), reasoning="Base evaluation", dimensions={"Accuracy": self._clamp(0.1), "Reliability": self._clamp(0.1), "Efficiency": self._clamp(0.1)})
 
 class DebuggingRubric(PrismRubric):
     def evaluate(self, answer: str, task_data: dict, history: List[dict] = None) -> RubricResult:
@@ -39,9 +42,9 @@ class DebuggingRubric(PrismRubric):
         total_score = 0.6 * dims["Accuracy"] + 0.2 * dims["Reliability"] + 0.2 * dims["Efficiency"]
         
         return RubricResult(
-            score=round(total_score, 3),
+            score=self._clamp(round(total_score, 3)),
             reasoning=f"Matched {matches}/{len(keywords)} fix keywords.",
-            dimensions=dims
+            dimensions={k: self._clamp(v) for k, v in dims.items()}
         )
 
 class MarketResearchRubric(PrismRubric):
@@ -64,7 +67,7 @@ class MarketResearchRubric(PrismRubric):
         total_score = 0.5 * dims["Accuracy"] + 0.3 * dims["Reliability"] + 0.2 * dims["Efficiency"]
         
         return RubricResult(
-            score=round(total_score, 3),
+            score=self._clamp(round(total_score, 3)),
             reasoning=f"Report length: {word_count} words with citations.",
-            dimensions=dims
+            dimensions={k: self._clamp(v) for k, v in dims.items()}
         )

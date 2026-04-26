@@ -60,13 +60,19 @@ export interface EpisodeState {
   agents: AgentCount;
   failure_rate: FailureRate;
   terminated: boolean;
+  feedback?: string;
+  last_reward?: number;
+  parent_episode_id?: string;
+  parent_score?: number;
 }
 
 export interface ResetOptions {
-  task_domain: TaskDomain;
-  agents: AgentCount;
-  failure_rate: FailureRate;
+  task_domain?: string;
+  agents?: number;
+  failure_rate?: number;
   seed?: number;
+  parent_episode_id?: string;
+  parent_score?: number;
 }
 
 export interface ProviderConfig {
@@ -108,17 +114,17 @@ const getBaseUrl = () => {
     return process.env.NEXT_PUBLIC_ENV_URL;
   }
   
-  // 2. Local development fallback: if frontend is on 3000, backend is likely on 8000
-  if (window.location.hostname === 'localhost' && window.location.port === '3000') {
+  // 2. Local development fallback: if we are on localhost, backend is likely on 8000
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:8000';
   }
   
-  // 3. Production/HF Spaces: use relative path to handle subpaths correctly
-  // This ensures that /health becomes /spaces/user/repo/health on HF
+  // 3. Production/HF Spaces: use relative path
   return window.location.pathname.replace(/\/$/, '');
 };
 
 const API_BASE = getBaseUrl();
+console.log(`[Prism API] Base URL initialized as: ${API_BASE}`);
 
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
@@ -213,5 +219,109 @@ export async function fetchHistory(): Promise<HistoryItem[]> {
 export async function fetchHistoryDetail(eid: string): Promise<any> {
   const res = await fetch(`${API_BASE}/history/${eid}`);
   if (!res.ok) throw new Error("Failed to fetch history detail");
+  return res.json();
+}
+
+// ── ICL Training Types & Functions ─────────────────────────
+
+export interface ICLAnalysis {
+  prev_score: number;
+  improvement_plan: string;
+  weaknesses: string[];
+  ready_to_train: boolean;
+  run_count: number;
+}
+
+export interface ICLHistoryEntry {
+  prev_score: number;
+  run_count: number;
+  last_diagnostic: string;
+}
+
+export type ICLHistory = Record<string, ICLHistoryEntry>;
+
+export async function analyseICL(model_key: string, domain: string): Promise<ICLAnalysis> {
+  const res = await fetch(`${API_BASE}/icl/analyse`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model_key, domain }),
+  });
+  if (!res.ok) throw new Error("Failed to analyse ICL");
+  return res.json();
+}
+
+export async function startICLTraining(
+  provider: string,
+  model: string,
+  domain: string,
+  episode_id: string
+): Promise<{ ready: boolean; injection_preview: string; last_diagnostic?: string; corrections_applied?: string[] }> {
+  const res = await fetch(`${API_BASE}/icl/train`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, model, domain, episode_id }),
+  });
+  if (!res.ok) throw new Error("Failed to start ICL training");
+  return res.json();
+}
+
+export async function fetchICLHistory(): Promise<ICLHistory> {
+  const res = await fetch(`${API_BASE}/icl/history`);
+  if (!res.ok) return {};
+  return res.json();
+}
+
+// ── Tournament ICL Types & Functions ───────────────────────
+
+export interface ICLModelAnalysis {
+  model_name: string;
+  prev_score: number;
+  improvement_plan: string;
+  weaknesses: string[];
+  ready_to_train: boolean;
+  run_count: number;
+  last_diagnostic: string;
+}
+
+export interface ICLAnalyseAllResult {
+  domain: string;
+  models: Record<string, ICLModelAnalysis>;
+  total_models: number;
+}
+
+export interface ICLTrainedModel {
+  model_name: string;
+  injected: boolean;
+  last_diagnostic: string;
+  corrections_applied: string[];
+  injection_length: number;
+}
+
+export interface ICLTrainAllResult {
+  domain: string;
+  trained_models: Record<string, ICLTrainedModel>;
+  total_trained: number;
+}
+
+export async function analyseAllICL(domain: string): Promise<ICLAnalyseAllResult> {
+  const res = await fetch(`${API_BASE}/icl/analyse-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain }),
+  });
+  if (!res.ok) throw new Error("Failed to analyse all models");
+  return res.json();
+}
+
+export async function trainAllICL(
+  domain: string,
+  episode_ids: Record<string, string>
+): Promise<ICLTrainAllResult> {
+  const res = await fetch(`${API_BASE}/icl/train-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain, episode_ids }),
+  });
+  if (!res.ok) throw new Error("Failed to train all models");
   return res.json();
 }

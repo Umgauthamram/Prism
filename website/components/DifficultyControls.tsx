@@ -3,23 +3,29 @@
 import React, { useState } from "react";
 import { resetEpisode, TaskDomain, AgentCount, FailureRate } from "@/lib/api";
 
-export default function DifficultyControls() {
-  const [domain, setDomain] = useState<TaskDomain>("debug");
-  const [agents, setAgents] = useState<AgentCount>(4);
-  const [failureRate, setFailureRate] = useState<FailureRate>(0.2);
-  const [seed, setSeed] = useState(42);
-  const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+interface DifficultyControlsProps {
+  config: {
+    domain: TaskDomain;
+    agents: AgentCount;
+    failureRate: FailureRate;
+    seed: number;
+  };
+  setConfig: (config: any) => void;
+}
+
+export default function DifficultyControls({ config, setConfig }: DifficultyControlsProps) {
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   const handleReset = async () => {
     setLoading(true);
     setStatus(null);
     try {
       await resetEpisode({
-        task_domain: domain,
-        agents: agents,
-        failure_rate: failureRate,
-        seed: seed,
+        task_domain: config.domain,
+        agents: config.agents,
+        failure_rate: config.failureRate,
+        seed: config.seed,
       });
       setStatus({ type: "success", msg: "Environment reset successful" });
     } catch (err) {
@@ -27,6 +33,10 @@ export default function DifficultyControls() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const update = (key: string, val: any) => {
+    setConfig({ ...config, [key]: val });
   };
 
   return (
@@ -42,9 +52,9 @@ export default function DifficultyControls() {
           {["debug", "market_research", "etl"].map((d) => (
             <button
               key={d}
-              onClick={() => setDomain(d as TaskDomain)}
+              onClick={() => update("domain", d as TaskDomain)}
               className={`border-2 py-2.5 text-[10px] font-black uppercase tracking-tighter transition-all ${
-                domain === d 
+                config.domain === d 
                 ? "border-black bg-black text-white shadow-[4px_4px_0px_rgba(0,0,0,1)]" 
                 : "border-black bg-white text-black hover:bg-gray-100"
               }`}
@@ -61,9 +71,9 @@ export default function DifficultyControls() {
           {[2, 4, 8].map((n) => (
             <button
               key={n}
-              onClick={() => setAgents(n as AgentCount)}
+              onClick={() => update("agents", n as AgentCount)}
               className={`border-2 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all ${
-                agents === n 
+                config.agents === n 
                 ? "border-black bg-black text-white shadow-[4px_4px_0px_rgba(0,0,0,1)]" 
                 : "border-black bg-white text-black hover:bg-gray-100"
               }`}
@@ -78,17 +88,17 @@ export default function DifficultyControls() {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Instability (Inj 2)</label>
-          <span className="bg-black px-2 py-0.5 font-mono text-[10px] font-bold text-white border border-black">{failureRate}</span>
+          <span className="bg-black px-2 py-0.5 font-mono text-[10px] font-bold text-white border border-black">{config.failureRate}</span>
         </div>
         <input
           type="range"
           min="0"
           max="2"
           step="1"
-          value={failureRate === 0 ? 0 : failureRate === 0.2 ? 1 : 2}
+          value={config.failureRate === 0 ? 0 : config.failureRate === 0.2 ? 1 : 2}
           onChange={(e) => {
             const val = parseInt(e.target.value);
-            setFailureRate(val === 0 ? 0 : val === 1 ? 0.2 : 0.5);
+            update("failureRate", val === 0 ? 0 : val === 1 ? 0.2 : 0.5);
           }}
           className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-black/10 accent-black hover:accent-gray-800"
         />
@@ -99,10 +109,10 @@ export default function DifficultyControls() {
         <div className="relative group">
           <input
             type="number"
-            value={seed}
+            value={config.seed}
             onChange={(e) => {
               const val = parseInt(e.target.value);
-              setSeed(isNaN(val) ? 0 : val);
+              update("seed", isNaN(val) ? 0 : val);
             }}
             className="w-full border-2 border-black bg-white p-3 font-mono text-xs text-black transition-all focus:outline-none focus:ring-2 focus:ring-black/5"
           />

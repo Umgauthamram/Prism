@@ -1,0 +1,456 @@
+{
+  "groq/llama-3.3-70b-versatile/debug": {
+    "diagnostic_history": [
+      "Synthesizer called finish but grader score was low. The final answer did not contain the required keywords or structure. Before finish, verify the answer contains domain-specific solution markers.",
+      "Synthesizer called finish but grader score was low. The final answer did not contain the required keywords or structure. Before finish, verify the answer contains domain-specific solution markers.",
+      "Synthesizer called finish but grader score was low. The final answer did not contain the required keywords or structure. Before finish, verify the answer contains domain-specific solution markers."
+    ],
+    "breakdown_history": [
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.7143,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.7333,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7391,
+        "hallucination_penalty": 0.835,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7391,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.7143,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.7333,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7391,
+        "hallucination_penalty": 0.835,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7391,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.75,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.7632,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.7805,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7857,
+        "hallucination_penalty": 0.835,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7857,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      }
+    ],
+    "prev_score": 0.3956,
+    "improvement_plan": "",
+    "icl_injection": "",
+    "run_count": 10
+  },
+  "gemini/gemini-2.0-flash/debug": {
+    "diagnostic_history": [
+      "Synthesizer called finish but grader score was low. The final answer did not contain the required keywords or structure. Before finish, verify the answer contains domain-specific solution markers.",
+      "Synthesizer called finish but grader score was low. The final answer did not contain the required keywords or structure. Before finish, verify the answer contains domain-specific solution markers.",
+      "Synthesizer called finish but grader score was low. The final answer did not contain the required keywords or structure. Before finish, verify the answer contains domain-specific solution markers."
+    ],
+    "breakdown_history": [
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.6591,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.6739,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.6939,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.901,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.6591,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.6739,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.6939,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.901,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.6591,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.6739,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.6939,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.901,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      }
+    ],
+    "prev_score": 0.3784,
+    "improvement_plan": "",
+    "icl_injection": "",
+    "run_count": 10
+  },
+  "groq/llama-3.3-70b-versatile/market_research": {
+    "diagnostic_history": [
+      "Analysis is empty or hallucinated. No competitor coverage, no citations, no confidence scores."
+    ],
+    "breakdown_history": [
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.99,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.99,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.99,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.99,
+        "hallucination_penalty": 0.751,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.99,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.065,
+        "rubric_accuracy": 0.03,
+        "rubric_reliability": 0.1,
+        "rubric_efficiency": 0.1
+      }
+    ],
+    "prev_score": 0.4429,
+    "improvement_plan": "",
+    "icl_injection": "",
+    "run_count": 1,
+    "score_history": [
+      0.4429
+    ]
+  },
+  "gemini/gemini-2.0-flash/market_research": {
+    "diagnostic_history": [
+      "Analysis is empty or hallucinated. No competitor coverage, no citations, no confidence scores."
+    ],
+    "breakdown_history": [
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.999,
+        "coord_efficiency": 0.25,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.98,
+        "coord_efficiency": 0.5,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.1,
+        "atomic_health": 0.96,
+        "coord_efficiency": 0.6667,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.94,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.861,
+        "terminal_bonus": 0.001,
+        "rubric_accuracy": 0.0,
+        "rubric_reliability": 0.0,
+        "rubric_efficiency": 0.0
+      },
+      {
+        "progress_delta": 0.001,
+        "atomic_health": 0.92,
+        "coord_efficiency": 0.7,
+        "hallucination_penalty": 0.999,
+        "terminal_bonus": 0.065,
+        "rubric_accuracy": 0.03,
+        "rubric_reliability": 0.1,
+        "rubric_efficiency": 0.1
+      }
+    ],
+    "prev_score": 0.3848,
+    "improvement_plan": "",
+    "icl_injection": "",
+    "run_count": 1,
+    "score_history": [
+      0.3848
+    ]
+  }
+}

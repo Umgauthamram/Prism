@@ -30,6 +30,17 @@ _api_keys: Dict[str, str] = {
 }
 _model_results: Dict[str, List[Dict[str, Any]]] = {}
 
+# ICL injection state: episode_id -> prompt injection text
+_icl_injections: Dict[str, str] = {}
+
+def set_icl_injection(episode_id: str, injection: str) -> None:
+    """Store an ICL prompt injection for a specific episode."""
+    _icl_injections[episode_id] = injection
+
+def get_icl_injection(episode_id: str) -> str:
+    """Retrieve the ICL prompt injection for a specific episode."""
+    return _icl_injections.get(episode_id, "")
+
 def set_model_config(provider: str, model: str, api_key: str, episode_id: Optional[str] = None) -> dict:
     if provider not in PROVIDERS:
         return {"success": False, "message": "Unsupported provider"}
@@ -139,7 +150,10 @@ async def generate_agent_action(observation: dict, role: str, allowed_tools: dic
     if role == "Synthesizer" and pending_tasks:
         role_warning = "\n⚠️ WARNING: You are the Synthesizer. DO NOT use the 'finish' tool yet. There are still pending tasks. Use 'merge' or 'flag_gap' instead to keep the episode alive."
 
-    system_prompt = f"""You are a high-performance {role} agent in the Prism RL Environment.
+    # Get ICL injection for this episode if any
+    icl_text = get_icl_injection(observation.get("episode_id", ""))
+
+    system_prompt = f"""{icl_text}You are a high-performance {role} agent in the Prism RL Environment.
 OBJECTIVE: You must successfully complete EVERY task in the Task Graph. {role_warning}
 
 TASK GRAPH RULES:
@@ -179,6 +193,8 @@ What is the best next action for the {role} to maximize total reward and complet
             response_text = response_text.split("```")[1].split("```")[0].strip()
         
         action = json.loads(response_text)
+        if not isinstance(action, dict):
+            raise ValueError("Parsed action is not a dictionary")
     except:
         # Fallback per role
         fallbacks = {
@@ -186,7 +202,7 @@ What is the best next action for the {role} to maximize total reward and complet
             "Researcher": {"tool": "research_web", "args": {"q": "task context"}},
             "Coder": {"tool": "run_tests", "args": {}},
             "Critic": {"tool": "critique", "args": {}},
-            "Synthesizer": {"tool": "checkpoint", "args": {}}
+            "Synthesizer": {"tool": "finish", "args": {"answer": "Task complete fallback"}}
         }
         action = fallbacks.get(role, {"tool": "checkpoint", "args": {}})
 

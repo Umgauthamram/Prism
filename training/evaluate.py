@@ -64,7 +64,14 @@ async def run_evaluation(n_episodes_per_domain: int = 5):
                 total_reward += reward
                 step_rewards.append(reward)
                 
+                # NEW: Display diagnostic feedback from the environment
+                feedback = step_result.info.get("feedback", "")
+                if feedback and step_idx % 2 == 0: # Print every 2nd step to avoid clutter
+                    print(f"    [Diagnostic] Step {step_idx}: {feedback}")
+                
                 if step_result.done:
+                    if step_result.info.get("feedback"):
+                        print(f"    [Final Result] {step_result.info.get('feedback')}")
                     break
 
             domain_scores.append(total_reward)
@@ -74,6 +81,7 @@ async def run_evaluation(n_episodes_per_domain: int = 5):
                 "seed": 1000 + i,
                 "total_reward": round(total_reward, 4),
                 "step_rewards": [round(r, 4) for r in step_rewards],
+                "feedback_history": [step_result.info.get("feedback", "")]
             })
             print(f"  Episode {i+1}/{n_episodes_per_domain}: reward={total_reward:.4f}")
 

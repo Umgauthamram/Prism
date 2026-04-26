@@ -62,6 +62,8 @@ class PrismObservation(BaseModel):
     agents: Literal[2, 4, 8]
     failure_rate: float
     terminated: bool = False
+    parent_episode_id: Optional[str] = None
+    parent_score: float = 0.0
     reward: float = Field(default=0.0, ge=0.0, le=1.0)
     done: bool = False
     info: Dict[str, Any] = Field(default_factory=dict)
@@ -86,3 +88,5 @@ class PrismState(BaseModel):
     injected_failure_flag: bool
     agent_role: str
     checkpoint_id: str
+    parent_episode_id: Optional[str] = None
+    parent_score: float = 0.0

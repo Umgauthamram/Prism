@@ -1,19 +1,34 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import EpisodeViewer from "@/components/EpisodeViewer";
 import DifficultyControls from "@/components/DifficultyControls";
 import ModelSelector from "@/components/ModelSelector";
+import ICLTrainer from "@/components/ICLTrainer";
 import RewardCurveChart from "@/components/RewardCurveChart";
 import TransferScoreChart from "@/components/TransferScoreChart";
 import ModelComparisonChart from "@/components/ModelComparisonChart";
 import TournamentHistory from "@/components/TournamentHistory";
-import { fetchHealth, fetchMetrics, Metrics } from "@/lib/api";
+import { fetchHealth, fetchMetrics, Metrics, TaskDomain, AgentCount, FailureRate } from "@/lib/api";
 
 export default function Dashboard() {
   const [online, setOnline] = useState(false);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "archive">("dashboard");
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "training" | "archive">("dashboard");
+
+  // Shared Environment Config (Source of Truth)
+  const [envConfig, setEnvConfig] = useState({
+    domain: "debug" as TaskDomain,
+    agents: 4 as AgentCount,
+    failureRate: 0.2 as FailureRate,
+    seed: 42
+  });
+
+  // Cross-component coordination
+  const [autoStartEval, setAutoStartEval] = useState(false);
+  const [showResultsMode, setShowResultsMode] = useState(false);
+  const [evalContext, setEvalContext] = useState<{prevScore: number, modelName: string, parentEpisodeId?: string} | null>(null);
+  const [lastEpisodeId, setLastEpisodeId] = useState<string | null>(null);
 
   useEffect(() => {
     const poll = async () => {
@@ -35,6 +50,38 @@ export default function Dashboard() {
     poll();
     const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Called by ICLTrainer after training completes → switch to dashboard + auto-run
+  const handleStartEvaluation = useCallback((prevScoreInput: any = 0, modelNameInput: any = "") => {
+    // Defensive check: ensure we don't accidentally store React events or non-numbers
+    const score = typeof prevScoreInput === 'number' ? prevScoreInput : 0;
+    const name = typeof modelNameInput === 'string' ? modelNameInput : "Unknown";
+    
+    setEvalContext({ 
+      prevScore: score, 
+      modelName: name, 
+      parentEpisodeId: lastEpisodeId || undefined 
+    });
+    setAutoStartEval(true);
+    setShowResultsMode(false);
+    setCurrentTab("dashboard");
+  }, []);
+
+  // Called by EpisodeViewer when auto-eval triggers
+  const handleAutoEvalConsumed = useCallback(() => {
+    setAutoStartEval(false);
+  }, []);
+
+  // Called by EpisodeViewer after post-training eval finishes → show results
+  const handleEvalComplete = useCallback(() => {
+    setShowResultsMode(true);
+  }, []);
+
+  // Called by EpisodeViewer "Optimize Further" → go back to ICL Training
+  const handleOptimizeFurther = useCallback(() => {
+    setShowResultsMode(false);
+    setCurrentTab("training");
   }, []);
 
   return (
@@ -68,7 +115,8 @@ export default function Dashboard() {
       {/* Tab Navigation */}
       <nav className="mb-8 flex gap-3">
         {[
-          { id: "dashboard", label: "Active Environment & Training" },
+          { id: "dashboard", label: "Active Environment" },
+          { id: "training", label: "ICL Training" },
           { id: "archive", label: "Evaluation Archive" },
         ].map((tab) => (
           <button
@@ -93,12 +141,21 @@ export default function Dashboard() {
             <div className="space-y-8 lg:col-span-5">
               <div className="space-y-3">
                 <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-black/40 ml-2">Active Environment</h2>
-                <EpisodeViewer />
+                <EpisodeViewer
+                  autoStartEval={autoStartEval}
+                  onAutoEvalConsumed={handleAutoEvalConsumed}
+                  onEvalComplete={handleEvalComplete}
+                  onOptimizeFurther={handleOptimizeFurther}
+                  showResultsMode={showResultsMode}
+                  config={envConfig}
+                  evalContext={evalContext}
+                  onEpisodeIdUpdate={setLastEpisodeId}
+                />
               </div>
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <div className="space-y-3">
                     <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-black/40 ml-2">System Parameters</h2>
-                    <DifficultyControls />
+                    <DifficultyControls config={envConfig} setConfig={setEnvConfig} />
                 </div>
                 <div className="space-y-3">
                     <h2 className="text-[9px] font-black uppercase tracking-[0.3em] text-black/40 ml-2">Model Policy</h2>
@@ -122,6 +179,12 @@ export default function Dashboard() {
                 <ModelComparisonChart />
               </div>
             </div>
+          </div>
+        )}
+
+        {currentTab === "training" && (
+          <div className="animate-in fade-in duration-500">
+            <ICLTrainer onStartEvaluation={handleStartEvaluation} />
           </div>
         )}
 

@@ -49,8 +49,21 @@ export default function TournamentHistory() {
           <h3 className="text-sm font-black uppercase tracking-widest text-black">Tournament Archive</h3>
           <p className="text-xs text-black/40">Persistent evaluation history</p>
         </div>
-        <div className="text-[10px] font-black text-white bg-black px-2 py-1 border-2 border-black">
-          {history.length} RECORDS
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={async () => {
+              if (confirm("Are you sure you want to delete all evaluation history?")) {
+                await fetch(`${process.env.NEXT_PUBLIC_ENV_URL || 'http://localhost:8000'}/history/clear`, { method: 'POST' });
+                fetchHistoryData();
+              }
+            }}
+            className="text-[10px] font-black text-red-600 bg-white px-2 py-1 border-2 border-red-600 hover:bg-red-50 transition-all"
+          >
+            CLEAR ARCHIVE
+          </button>
+          <div className="text-[10px] font-black text-white bg-black px-2 py-1 border-2 border-black">
+            {history.length} RECORDS
+          </div>
         </div>
       </div>
 
