@@ -33,6 +33,18 @@ tags:
 
 ---
 
+## 🏆 Section 0: Submission Materials (Quick Access for Judges)
+
+| Resource | Link | Description |
+| :--- | :--- | :--- |
+| **🚀 HF Space (Live Demo)** | [prism-rl-env](https://huggingface.co/spaces/gauthamram/prism-rl-env) | Interactive Dashboard & Tournament Runner |
+| **📝 Mini-Blog / Story** | [The Prism Story](prism_lifecycle_story.md) | Narrative walkthrough of the environment and training lifecycle |
+| **📓 Colab Notebook** | [Interactive Training Demo](https://colab.research.google.com/drive/1EWLMiGzWRkN1JxBCcPnUQS3A8MogK_-S?usp=sharing) | Working behavioral training & reward curve generator |
+| **🐍 TRL Training Script** | [training/trl_grpo_demo.py](training/trl_grpo_demo.py) | Full Hugging Face TRL GRPOTrainer integration logic |
+| **📽️ Presentation Deck** | [Submission Content](prism_submission_content.md) | Slide outline and mini-blog copy for HF/LinkedIn |
+
+---
+
 ## The Prism Story: Bridging the Reliability Gap
 
 ### 1. The Problem: Why LLM Agents Fail in Production
@@ -71,7 +83,7 @@ Prism isn't just a benchmark; it's a **Frontier Testing Ground**. It allows rese
 | History           | Persistent Archive + Auto-Rebuild          |
 | Max Steps/Episode | 30                                         |
 | Docker Port       | 7860                                       |
-| HF Space          | [huggingface.co/spaces/umgauthamram/prism](https://huggingface.co/spaces/umgauthamram/prism) |
+| HF Space          | [huggingface.co/spaces/umgauthamram/prism](https://huggingface.co/spaces/gauthamram/prism) |
 
 ---
 
@@ -508,7 +520,7 @@ This script saves `reward_curve.jsonl` (per-step logs) and `transfer_curve.jsonl
 - [x] **Gymnasium-style API:** step(), reset(), state() over HTTP.
 - [x] **Isolated execution:** Each episode sandboxed with ephemeral state.
 - [x] **Docker packaging:** Single Dockerfile exposing port 7860.
-- [x] **Hugging Face Space:** Deployed at [umgauthamram-prism-rl-env](https://huggingface.co/spaces/umgauthamram/prism-rl-env).
+- [x] **Hugging Face Space:** Deployed at [gauthamram-prism-rl-env](https://huggingface.co/spaces/gauthamram/prism-rl-env).
 - [x] **Reproducibility:** Fully seeded randomness in reset().
 - [x] **Scalable rollouts:** Stateless HTTP for horizontal scaling.
 - [x] **Novel environment:** Targets coordination, atomicity, and transfer.
