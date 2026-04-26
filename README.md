@@ -66,10 +66,12 @@ Prism isn't just a benchmark; it's a **Frontier Testing Ground**. It allows rese
 | Task Domains      | Software Debugging, Market Research, ETL   |
 | Agent Roles       | Planner, Researcher, Coder, Critic, Synthesizer |
 | Reward Type       | Dense, shaped, 5-component per step        |
-| Reward Range      | (0.01, 0.99) soft-clamped                  |
-| Max Steps/Episode | 50                                         |
+| Reward Range      | (0.01, 0.99) safe-clamped                  |
+| ICL Multiplier    | 1.5x Terminal Boost (Trained Only)         |
+| History           | Persistent Archive + Auto-Rebuild          |
+| Max Steps/Episode | 30                                         |
 | Docker Port       | 7860                                       |
-| HF Space          | [huggingface.co/spaces/umgauthamram/prism-rl-env](https://huggingface.co/spaces/umgauthamram/prism-rl-env) |
+| HF Space          | [huggingface.co/spaces/umgauthamram/prism](https://huggingface.co/spaces/umgauthamram/prism) |
 
 ---
 
